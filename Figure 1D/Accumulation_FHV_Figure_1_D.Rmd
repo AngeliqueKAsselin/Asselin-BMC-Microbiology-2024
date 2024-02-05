@@ -1,0 +1,284 @@
+---
+title: "Accumulation of FHV in flies with and without Wolbachia"
+author: "Angelique Asselin"
+date: "2023-09-19"
+output: html_document
+---
+# Experimental details
+ Virus:     FHV
+ Titre:     10E09 IU/mL 
+ Fly:       w1118 wMelPop and w1118 wMelPop-Tet
+ Figure:    1D
+ 
+# Rationale 
+To determine if Wolbachia has an impact on measured FHV levels three hours post infection. 
+
+# Approach
+Welch T-test 
+
+# Preparation 
+```{r Preparation: Loading library}
+library(ggplot2)
+library(tidyverse)
+library(gmodels)
+library(FSA)
+library(DescTools)
+library(car)
+library(MASS)
+library(ggpubr)
+library(rstatix)
+library(lmtest)
+library(tidyverse)
+library(car)
+library(dixonTest)
+```
+
+# Importing Ct data 
+
+Data
+Target_takeoff    = The ct value for reactions targeting FHV 
+Reference_takeoff = The ct value for reactions targeting RpL32
+Sample_number     = The number of the sample note that samples have two technical replicates 
+
+Data_ID 
+Contains information such as the time of collection (Time) for each sample the replicate (Replicate) number(n=6) and the fly line the data are from (Line; 0 = w1118-wMelpopTet, 1= w1118-wMelPop)
+
+```{r Importing Ct Data}
+# Importing raw Ct values
+data_FHV_acc<- as.data.frame(read_csv("Accumulation_FHV_Figure_1_D_data.csv"))
+
+# Importing sample ID information
+data_ID <- as.data.frame(read_csv("Accumulation_FHV_Figure_1_D_data_sample_ID.csv"))
+```
+
+# Calculating MNE from Ct Data 
+This analysis utilises Equation (2) and (3) from 
+DOI: 10.1093/bioinformatics/btg157
+
+```{r Analysing Ct Data}
+# Setting the data
+Data <- data_FHV_acc
+
+#Sets % SEM cutoff for samples (default 20%)
+SEMCutoff = 20
+
+# Do you wish to automatically censor data over the above SEM% threshold? 0 = no, 1 = yes (default yes)
+UseCutoff = 1
+
+# Change std Amp. efficiency if necessary
+TarAmp = 1.99 # FHV primer efficiency derived previously in the lab 
+RefAmp = 1.64 # rpl32 primer efficiency derived previously in the lab 
+
+# Sorting the data for analysis
+
+Normalised <-
+  data.frame("Sample", "MNE", "SE of MNE", "SE of MNE as % (x<=20%)")
+i = 0
+val = 1:nrow(Data)
+val <- val[seq(1, (length(val)), 2)]
+w = unlist(c(Data[4]))
+x = unlist(c(Data[3]))
+y = unlist(c(Data[2]))
+s = matrix(x, nrow = 1, ncol = nrow(Data))
+v = matrix(w, nrow = 1, ncol = nrow(Data))
+t = matrix(y, nrow = nrow(Data), ncol = 1)
+list <-
+  data.frame("Censored Samples", "MNE", "SE of MNE", "SE of MNE as % (x>25%)")
+
+# For loop processes all the data and adds it to the dataframe
+for (i in val) {
+  # Calculates MNE of Duplicates
+  MNE2 = (RefAmp ^ ((v[1, i] + v[1, i + 1]) / 2)) / (TarAmp ^ ((s[1, i] +
+                                                                  s[1, i + 1]) / 2))
+  
+  # Calculates SE of MNE
+  SEofCTTAR = sd(c(s[1, i], s[1, i + 1])) / sqrt(2)
+  SEofCTREF = sd(c(v[1, i], v[1, i + 1])) / sqrt(2)
+  
+  SEofMNE = MNE2 * (((log(TarAmp) * SEofCTTAR) ^ 2) + ((log(RefAmp) * SEofCTREF) ^
+                                                         2)) ^ .5
+  
+  # Calculates SE of MNE as %
+  SEofMNEasP = (SEofMNE / MNE2) * 100
+  
+  # Adds each set of data to the data frame (you may wish to change the digits= option to be smaller if you wish)
+  if (UseCutoff == 1) {
+    if (SEofMNEasP > SEMCutoff) {
+      cat(
+        "Sample:",
+        t[i, 1],
+        "was censored due to exceeding SEM cutoff of",
+        SEMCutoff,
+        "with a value of",
+        (round(SEofMNEasP, digits = 2)),
+        "\n"
+      )
+      list[nrow(list) + 1,] = c(
+        t[i, 1],
+        round(MNE2, digits = 10),
+        round(SEofMNE, digits = 5),
+        round(SEofMNEasP, digits = 2)
+      )
+    }
+    else {
+      Normalised[nrow(Normalised) + 1,] = c(
+        t[i, 1],
+        round(MNE2, digits = 10),
+        round(SEofMNE, digits = 5),
+        round(SEofMNEasP, digits = 2)
+      )
+    }
+  }
+  else {
+    Normalised[nrow(Normalised) + 1,] = c(
+      t[i, 1],
+      round(MNE2, digits = 10),
+      round(SEofMNE, digits = 5),
+      round(SEofMNEasP, digits = 2)
+    )
+  }
+}
+```
+
+```{r Formats MNE output}
+# Formats the analysed dataset
+MNE <- Normalised %>%
+  rename(
+    Sample = X.Sample.,
+    FHV_MNE = X.MNE.,
+    FHV_SE_MNE = X.SE.of.MNE.,
+    FHV_SE_Percent = X.SE.of.MNE.as....x..20...
+  ) %>%
+  slice(-1) %>% 
+  select(Sample, everything())
+```
+
+# Formating data
+Joins the data with the associated Data_ID information
+* Line (flies with or without Wolbachia) 
+* Time 
+* Replicate 
+
+```{r Sample information}
+# Code the samples as the same 
+MNE$Sample <- as.double(MNE$Sample)
+data_ID$Sample <- as.double(data_ID$Sample)
+
+# Joining the MNE dataframe with the sample ID dataframe 
+data_MNE <- full_join(data_ID, MNE, by = join_by(Sample))
+```
+
+# Formating MNE for analysis and graphing 
+
+```{r Formating MNE for analysis and graphing}
+# Coding the factors correctly 
+data_MNE$Time <- as.factor(data_MNE$Time)
+data_MNE$FHV_MNE <- as.numeric(data_MNE$FHV_MNE)
+data_MNE$Line <- as.factor(data_MNE$Line)
+
+# Log-transforming data
+data_MNE <- data_MNE %>% 
+  mutate(log_10_FHV_MNE = log10(FHV_MNE)) 
+
+# Subsetting time points that have full replicates 
+data_MNE_sub <- subset(data_MNE, Time == "3") 
+```
+
+# Graphing 
+```{r Graphing}
+FHV <-  ggplot(data_MNE_sub, aes(x = Line, y = log_10_FHV_MNE)) + 
+   geom_point(aes(col = Line), size = 6, position = position_jitter(width = 0.01)) +
+  theme_classic()+ 
+  stat_summary(fun.data = mean_se, 
+               geom = "errorbar", 
+               size = 1,
+               width = 0.3, 
+               aes(group = Line, col = Line)) +
+  stat_summary(fun = mean,
+               geom = "crossbar",
+               width = 0.15,
+               position = position_dodge(width = 0.3), 
+               aes(group = Line, col = Line)) +
+  labs(x = NULL, y = expression(bold("Relative levels of FHV RNA")), color = "Group") +
+  scale_color_manual(values = c("black", "red")) +
+  theme(plot.margin = unit(c(3, 1, 1, 2), "lines"),
+        axis.text.x = element_blank(),  # Remove x-axis text
+        axis.text.y = element_text(face= "bold", size = 30, colour = "black", hjust = 0.5, vjust = 0.1), 
+        axis.title = element_text(size = 30))+
+   guides(color = FALSE)
+
+```
+
+# Analysis 
+
+Comparing the virus levels of two groups. 
+Flies with Wolbachia and flies without Wolbachia. 
+FHV accumulation is only compared at 1 time point therefore a simple t-test should be sufficient. 
+
+
+```{r FHV T-test}
+# Removing outliers (#sample 11)
+data_MNE_sub_outlier <- subset(data_MNE_sub, Sample != 11)
+
+# T-test
+FHV_t_test <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub)
+FHV_t_test
+print(FHV_t_test)
+
+# T-test without outlier 
+FHV_t_test_out <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub_outlier)
+FHV_t_test_out
+``` 
+
+# Results from analysis 
+
+* Mean normalised expression of FHV is different between the two groups. 
+* Wolbachia has an impact on the levels of FHV after 3 hour post infection. 
+* outlier doesn't impact overall conclusion therefore keep the outlier in for the analysis as there is no evidene compelling it's removal 
+
+
+# Assumptions 
+1. Independence = PASS (in the design)
+2. Normality of dependent variable = PASS (Fit in the confidence interval)
+3. No significant outliers = FAIL (outlier in the Wolbachia data # sample 11, however no impact of removing this outlier on the overall conclusions of this analysis) 
+4. Dependent variable is continuous (PASS)
+
+OUTLIER
+There looks like there is an outlier in the Wolbachia samples but when I checked the time 0 data it was not detectable in this replicate at that time point suggesting that the virus has accumulated so there was a productive infection it just didn't replicate to as high a levels. Because there was an outlier in the data wanted to see if it impacted the outcome. There is still a measured statistical difference regardless of whether the outlier was included but the variation and error is greater for the data when including the outlier. 
+
+```{r Assumptions}
+# Assumptions 
+# 2. Normality 
+FHV_0 <- data_MNE_sub %>% 
+  subset(Line == "0")
+
+FHV_1 <- data_MNE_sub %>% 
+  subset(Line == "1")
+
+ggqqplot(FHV_0$log_10_FHV_MNE) 
+ggqqplot(FHV_1$log_10_FHV_MNE) 
+
+# 3. Outliers 
+# In the data from Flies withtout Wolbachia
+dixonTest(FHV_0$log_10_FHV_MNE)
+
+# In data from flies with Wolbachia 
+dixonTest(FHV_1$log_10_FHV_MNE) # Sample 11 Value -1.15 
+
+```
+
+# Exporting 
+```{r Exporting Graph}
+name <- paste("Figure", "1", "D", sep = "_")
+pdf_name <- paste(name, "pdf", sep = ".")
+ggsave(filename = pdf_name,
+       plot = FHV, 
+       width = 15, 
+       height = 7.5)
+```
+
+```{r FHV T-test Output RUN OUT OF RMD}
+sink("Accumulation_FHV_Figure_1_D_stats_output.txt") # add date and data_IFB_01 name | creates the txt file in WD
+print(FHV_t_test) # prints coxme output to txt file
+sink() # closes the connection **CRITICAL**
+```

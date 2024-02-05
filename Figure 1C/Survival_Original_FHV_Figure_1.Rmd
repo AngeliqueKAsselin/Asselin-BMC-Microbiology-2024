@@ -1,0 +1,225 @@
+---
+title: "Survival FHV Original Figure 1C"
+author: "Angelique Asselin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+# Experimental details
+ Virus: FHV
+ Titre: 10E9 IU/mL 
+ Fly: w1118 wMelPop and w1118 wMelPopTet
+ Figure: 1C
+ 
+# Rationale 
+To determine the impact of Wolbachia on the survival of flies infected with FHV 
+
+# Approach 
+Use the coxme model
+
+# Resources 
+Non-parametric alternatives 
+ (Kutzner et al. 2023, Kutzner et al. 2019)
+
+# Preparation 
+```{r Load librarys, eval=FALSE}
+# Load library 
+library(coxme)
+library(survminer)
+library(tidyverse)
+library(ggplot2)
+library(SurvRegCensCov)
+library(tibble)
+library(viridis)
+library(dichromat)
+library(RColorBrewer)
+library(MASS)
+library(ggpubr)
+library(rstatix)
+library(lmtest)
+library(car)
+```
+
+# Importing data
+Day         = Day at which mortality was seen else the last day of the experiment
+Suvival     = Whether the fly was alive (0) or dead (1) on the day 
+Wol         = Presence or absences of Wolbachia 0 = Absent w1118-wMelpopTet, 1 = present w1118-wMelPop)
+Virus       = Presence of virus (0 = absent, 1 = present)
+TechRep     = Individual vial a fly was part of 
+BiolRep     = cohort that an individaul fly was a part of 
+
+```{r Importing Data}
+data_FHV <- read.csv("Survival_Original_FHV_Figure_1_data.csv")
+```
+
+```{r Formating Data}
+# Formatting data
+data_FHV$Wol <- factor(data_FHV$Wol) # Wolbachia as factor
+data_FHV$Virus <- factor(data_FHV$Virus) # Virus as factor
+data_FHV_noPBS <- dplyr::filter(data_FHV, Virus == 1) # filters out PBS 
+data_FHV_PBS <- dplyr::filter(data_FHV, Virus == 0) # Filters out virus
+
+# Checking data
+head(data_FHV)
+head(data_FHV_noPBS)
+head(data_FHV_PBS)
+
+# Checking factors
+levels(data_FHV$Wol)
+levels(data_FHV$Virus)
+
+```
+
+# Coxme Analysis 
+Applying cox-me model to determine the impact of Wolbachia on survival when flies are infected with FHV.
+
+* Wolbachia = predictor
+* biol and tech replicates = random effects
+
+```{r Coxme fitting}
+# Fitting the model
+fit1 <- coxme(Surv(Days, Survival) ~ Wol + (1 | BiolRep/TechRep), data = data_FHV_noPBS)
+```
+
+# Assumptions 
+Testing the assumptions of coxme
+1. Independent of treatments, virus impacts survival 
+2. Independent of viral infection, Wolbachia doesn't impact survival (PBS)
+3. Proportional hazards 
+
+Results:
+1. Passed: p-value for virus coef is significant 
+2. Passed: p-value for wol coef is NOT significant
+3. Passed: Global and wol coef passed p-value is NOT significant
+
+Conclusions: 
+Assumptions are met cox-me is appropriate analysis 
+
+
+
+```{r Coxme Assumptions}
+# 1. Independent of treatments virus impacts survival 
+fitSus <- coxme(Surv(Days, Survival) ~ Virus + (1 | BiolRep/TechRep), data= data_FHV) 
+fitSus 
+
+# 2. Independent of viral infection Wolbachia doesn't impact survival (PBS)
+fitPBS <- coxme(Surv(Days, Survival) ~ Wol + (1 | BiolRep/TechRep), data = data_FHV_PBS) 
+fitPBS
+
+# 3. Proportional hazards: Visualise
+# Plot
+LMLplot <- plot(survfit(Surv(Days, Survival) ~ Wol, data = data_FHV_noPBS), fun = "cloglog")
+
+# 3. Proportional hazards: Formally test 
+ftest <- cox.zph(fit1)
+print(ftest) # prints test results
+ggcoxzph(ftest) # plots test results
+```
+
+
+# Conclusions 
+Wolbachia impacts survival coxme
+* The HR of flies with wol is 0.005933289 
+* For every fly without wolbachia 0.005933289 flies with Wolbachia die. 
+* For each time point, flies with wolbachia are ~99% (1-0.08902321 = 0.9940667) less likely to die from virus than flies without Wolbachia
+
+# Summary of analysis
+```{r Summary Coxme output}
+# Extract the HR estimates and confidence intervals
+coef_cox<- as.data.frame(summary(fit1)$coefficients) # extract coef
+HR_cox <- as.data.frame(exp(coef_cox)) # convert coefficient to HR 
+CI_cox <- as.data.frame(exp(confint(fit1))) # CIs for HR 
+
+# Extracts p-value 
+extract_coxme_table <- function (mod){
+  beta <- mod$coefficients 
+  nvar <- length(beta)
+  nfrail <- nrow(mod$var) - nvar
+  se <- sqrt(diag(mod$var)[nfrail + 1:nvar])
+  z<- round(beta/se, 2)
+  p<- signif(1 - pchisq((beta/se)^2, 1), 2)
+  table=data.frame(cbind(beta,se,z,p))
+  return(table)
+}
+extract_coxme_table(fit1)
+p_cox <- as.data.frame(extract_coxme_table(fit1)$p)
+
+# Create data-frame
+df_cox <- bind_cols(coef_cox, HR_cox, CI_cox, p_cox) %>% 
+  rename(coef = `summary(fit1)$coefficients...1`, 
+         HR = `summary(fit1)$coefficients...2`, 
+         "LB_2.5%" = "2.5 %",
+         "UB_97.5%" = "97.5 %", 
+         pval = "extract_coxme_table(fit1)$p") %>% 
+  mutate(test = "coxme") %>% 
+  tibble::rownames_to_column("factor")
+
+# confirms extraction 
+print(fit1)
+View(df_cox)
+```
+
+```{r Visualising Coxme output}
+# Graph of HR and CI 
+plot_coxme <- ggplot(df_cox, aes(x = factor, y = HR, colour = test, group_by(test))) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = `LB_2.5%`, ymax = `UB_97.5%`, color = test), width = 0.1) +
+  coord_flip() +
+  xlab("") +
+  ylab("Hazard Ratio") +
+  scale_color_manual(values = c("blue")) +
+  theme_minimal()
+```
+
+# Graphing Kaplan-Meire survival curves 
+
+The curves generated are Kaplan-Meier but the analysis that has been conducted is coxme
+
+```{r Creating Kaplan-Meire curves}
+# Creating the survival curve 
+curves <- survfit(Surv(Days, Survival) ~ Wol, data=data_FHV_noPBS)
+```
+
+```{r Plotting Kaplan-Meire curves}
+
+graph_FHV <- ggsurvplot(curves,
+           data = data_FHV_noPBS,              
+           axes.offset = FALSE,     
+           line = c(1,1,1,2,2,2),
+           xlim = c(0,35),
+           ylim = c(0,1.01),
+           xlab = "Days Post Infection",
+           ylab = "Proportional survival",
+           legend.title=element_blank(), 
+           break.time.by = 1, 
+           break.y.by = 0.2,
+           conf.int = TRUE,
+           ggtheme = theme_classic2(),
+           palette = c("black", "red"),
+           legend = "none"
+) |> ggpar(
+  font.x        = c(30, "bold", "black"),          
+  font.y        = c(30, "bold", "black"),      
+  font.xtickslab = c(30, "plain", "black"),
+  font.ytickslab = c(30, "plain", "black")
+) 
+
+```
+
+# Exporting outputs 
+```{r Exporting outputs}
+
+# Saving coxme summary
+write.csv(df_cox, file = "Survival_FHV_Figure_1_coxme_HR_output.csv", row.names = FALSE)
+
+# Saving coxme plot 
+ggsave("Survival_FHV_Figure_1_coxme_plot_output.pdf", 
+       plot = plot_coxme, 
+       height = 7.5, 
+       width = 15) 
+
+# Saving Kaplan-Meire survival curves 
+ggsave("Survival_DCV_Figure_1_curves_plot_output.pdf", 
+       plot = graph_FHV$plot, 
+       height = 7.5, 
+       width = 15)
+```

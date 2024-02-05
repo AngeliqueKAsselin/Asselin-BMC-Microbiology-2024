@@ -1,0 +1,29 @@
+Time = 0:
+ contrast      estimate   SE df t.ratio p.value
+ Line0 - Line1     7.33 3.92 70   1.870  0.0656
+
+Time = 6:
+ contrast      estimate   SE df t.ratio p.value
+ Line0 - Line1     1.50 3.92 70   0.383  0.7032
+
+Time = 10:
+ contrast      estimate   SE df t.ratio p.value
+ Line0 - Line1    20.33 3.92 70   5.186  <.0001
+
+Time = 24:
+ contrast      estimate   SE df t.ratio p.value
+ Line0 - Line1    21.00 3.92 70   5.356  <.0001
+
+Time = 48:
+ contrast      estimate   SE df t.ratio p.value
+ Line0 - Line1    26.83 3.92 70   6.844  <.0001
+
+Time = 72:
+ contrast      estimate   SE df t.ratio p.value
+ Line0 - Line1    19.83 3.92 70   5.059  <.0001
+
+Time = 96:
+ contrast      estimate   SE df t.ratio p.value
+ Line0 - Line1    19.83 3.92 70   5.059  <.0001
+
+Note: contrasts are still on the rank scale 

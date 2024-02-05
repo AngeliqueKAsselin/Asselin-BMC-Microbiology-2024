@@ -1,0 +1,10 @@
+Call:
+   aov(formula = rank(log_10_DCV_MNE) ~ Line * Time, data = data_anova)
+
+Terms:
+                    Line     Time Line:Time Residuals
+Sum of Squares   5833.33 38905.33   1418.33   3228.00
+Deg. of Freedom        1        6         6        70
+
+Residual standard error: 6.79075
+Estimated effects may be unbalanced
