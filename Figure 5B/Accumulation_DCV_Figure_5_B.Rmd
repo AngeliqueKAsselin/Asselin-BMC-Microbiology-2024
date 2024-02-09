@@ -1,0 +1,350 @@
+---
+title: "Figure 5B: Accumulation of progeny DCV in Drosophila cells without Wolbachia"
+author: "Angelique Asselin"
+date: "2023-09-19"
+output: html_document
+---
+
+# Experimental details
+ Virus:     DCV(EB)
+ Titre:     0.001 total DCV particles per cell
+ Fly:       S2 Drosophila melanogaster cells 
+ Figure:    5B
+ 
+# Rationale 
+To determine if Wolbachia and time has an impact on accumulation of DCV viral RNA in flies. 
+
+# Approach 
+Calculate mean normalised expression of DCV RNA genome relative to Drosophila melanogaster house keeping gene RpL32. 
+Conduct an ANOVA to see if mean normalised expression of DCV RNA genome is different with Time and Wolbachia
+
+# Preparation
+
+```{r Preparation Loading librarys}
+library(nlme)
+library(moments)
+library(ggplot2)
+library(tidyverse)
+library(gmodels)
+library(FSA)
+library(DescTools)
+library(car)
+library(MASS)
+library(ggpubr)
+library(rstatix)
+library(lmtest)
+library(tidyverse)
+library(car)
+library(ggdensity)
+```
+
+# Importing Ct data 
+Data
+Target_takeoff    = The ct value for reactions targeting DCV 
+Reference_takeoff = The ct value for reactions targeting RpL32
+Sample_number     = The number of the sample note that samples have two technical replicates 
+
+Data_ID 
+Contains information such
+Time          = Time of collection for each sample  
+Replicate     = Replicate number(n=6) 
+Line          = Represents the type of progeny virus W- = 0, and W+ = 1
+
+```{r Importing Ct Data}
+# Importing raw Ct values
+data_DCV_acc<- as.data.frame(read_csv("Accumulation_DCV_Figure_5_B_data.csv"))
+
+# Importing sample ID information
+data_ID <- as.data.frame(read_csv("Accumulation_DCV_Figure_5_B_data_sample_ID.csv"))
+```
+# Calculating MNE from Ct Data 
+This analysis utilises Equation (2) and (3) from 
+DOI: 10.1093/bioinformatics/btg157
+
+```{r Analysing Ct Data}
+# Seting the data
+Data <- data_DCV_acc
+
+#Sets % SEM cutoff for samples (default 20%)
+SEMCutoff = 20
+
+# Do you wish to automatically censor data over the above SEM% threshold? 0 = no, 1 = yes (default yes)
+UseCutoff = 1
+
+# Change std Amp. efficiency if necessary
+TarAmp = 1.79 # DCV
+RefAmp = 1.64 # rpl32
+
+# Sorting the data for analysis
+
+Normalised <-
+  data.frame("Sample", "MNE", "SE of MNE", "SE of MNE as % (x<=20%)")
+i = 0
+val = 1:nrow(Data)
+val <- val[seq(1, (length(val)), 2)]
+w = unlist(c(Data[4]))
+x = unlist(c(Data[3]))
+y = unlist(c(Data[2]))
+s = matrix(x, nrow = 1, ncol = nrow(Data))
+v = matrix(w, nrow = 1, ncol = nrow(Data))
+t = matrix(y, nrow = nrow(Data), ncol = 1)
+list <-
+  data.frame("Censored Samples", "MNE", "SE of MNE", "SE of MNE as % (x>25%)")
+
+# For loop processes all the data and adds it to the dataframe
+for (i in val) {
+  # Calculates MNE of Duplicates
+  MNE2 = (RefAmp ^ ((v[1, i] + v[1, i + 1]) / 2)) / (TarAmp ^ ((s[1, i] +
+                                                                  s[1, i + 1]) / 2))
+  
+  # Calculates SE of MNE
+  SEofCTTAR = sd(c(s[1, i], s[1, i + 1])) / sqrt(2)
+  SEofCTREF = sd(c(v[1, i], v[1, i + 1])) / sqrt(2)
+  
+  SEofMNE = MNE2 * (((log(TarAmp) * SEofCTTAR) ^ 2) + ((log(RefAmp) * SEofCTREF) ^
+                                                         2)) ^ .5
+  
+  # Calculates SE of MNE as %
+  SEofMNEasP = (SEofMNE / MNE2) * 100
+  
+  # Adds each set of data to the data frame (you may wish to change the digits= option to be smaller if you wish)
+  if (UseCutoff == 1) {
+    if (SEofMNEasP > SEMCutoff) {
+      cat(
+        "Sample:",
+        t[i, 1],
+        "was censored due to exceeding SEM cutoff of",
+        SEMCutoff,
+        "with a value of",
+        (round(SEofMNEasP, digits = 2)),
+        "\n"
+      )
+      list[nrow(list) + 1,] = c(
+        t[i, 1],
+        round(MNE2, digits = 10),
+        round(SEofMNE, digits = 5),
+        round(SEofMNEasP, digits = 2)
+      )
+    }
+    else {
+      Normalised[nrow(Normalised) + 1,] = c(
+        t[i, 1],
+        round(MNE2, digits = 10),
+        round(SEofMNE, digits = 5),
+        round(SEofMNEasP, digits = 2)
+      )
+    }
+  }
+  else {
+    Normalised[nrow(Normalised) + 1,] = c(
+      t[i, 1],
+      round(MNE2, digits = 10),
+      round(SEofMNE, digits = 5),
+      round(SEofMNEasP, digits = 2)
+    )
+  }
+}
+
+View(Normalised)
+
+```
+
+```{r Formats MNE output}
+# Formats the analysed dataset
+MNE <- Normalised %>%
+  rename(
+    Sample = X.Sample.,
+    DCV_MNE = X.MNE.,
+    DCV_SE_MNE = X.SE.of.MNE.,
+    DCV_SE_Percent = X.SE.of.MNE.as....x..20...
+  ) %>%
+  slice(-1) %>% 
+  select(Sample, everything())
+
+# Visualize the data frame
+View(MNE)
+```
+
+Censored data are those samples that were essentially non-detectable by qPCR  ct>30
+```{r Censored data }
+# Formats the censored data set
+SEM_censored <- list %>%
+  rename(
+    Sample_file = X.Censored.Samples.,
+    MNE = X.MNE.,
+    SE_MNE = X.SE.of.MNE.,
+    SE_Percent = X.SE.of.MNE.as....x.25...
+  ) %>%
+  mutate(Sample_file = as.character(Sample_file)) %>%
+  slice(-1)
+
+# Visualize the data set
+SEM_censored
+```
+
+# Formating data
+Joins the data with the associated Data_ID information
+* Line (progeny virus used W- or W+)  
+* Time 
+* Replicate 
+
+```{r Sample information}
+# Code the samples as the same 
+MNE$Sample <- as.double(MNE$Sample)
+data_ID$Sample <- as.double(data_ID$Sample)
+
+# Joining the MNE dataframe with the sample ID dataframe 
+data_MNE <- full_join(data_ID, MNE, by = join_by(Sample))
+```
+
+# Formating MNE for analysis and graphing 
+
+```{r Formating MNE for analysis and graphing}
+# Coding the factors correctly 
+data_MNE$Time <- as.factor(data_MNE$Time)
+data_MNE$DCV_MNE <- as.numeric(data_MNE$DCV_MNE)
+
+# Log-transforming data
+data_MNE <- data_MNE %>% 
+  mutate(log_10_DCV_MNE = log10(DCV_MNE)) 
+
+# Subsetting time points that have full replicates 
+data_MNE_sub <- subset(data_MNE, Time != "0") %>% 
+  subset( Time != "2") %>% # Some were censored because ND 
+  subset( Time != "4") # Some samples were censored because ND
+
+data_anova <- data_MNE_sub %>% 
+  select(log_10_DCV_MNE, Time, Line, Replicate, Sample) %>% 
+  mutate(Line = as.factor(Line)) %>% 
+  mutate(Time = as.factor(Time))
+```
+
+
+# Analysis - ANOVA 
+
+```{r ANOVA Fitting the model}
+# Fitting the model 
+DCV_aov1 <- aov(log_10_DCV_MNE ~ 
+                  Line * 
+                  Time , 
+                data = data_anova)
+
+DCV_aov2 <- aov(log_10_DCV_MNE ~ 
+                  Line + 
+                  Time , 
+                data = data_anova) #Best fit model
+
+DCV_aov3 <- aov(log_10_DCV_MNE ~ 
+                  Line , 
+                data = data_anova)
+
+# Finding the best fit model
+AIC(DCV_aov1, DCV_aov2) 
+AIC(DCV_aov2, DCV_aov3)
+
+# Summary of analysis 
+summary(DCV_aov2)
+```
+
+# Assumptions -ANOVA 
+1. Homogeneity of variances (PASS)
+2. Normality (PASS)
+3. Outliers (PASS)
+
+```{r ANOVA Assumptions}
+# Visually Check 
+plot(DCV_aov2)
+
+# Extract residuals and fitted values
+DCV_aov2_fitted <- fitted(DCV_aov2)
+DCV_aov2_res <- residuals(DCV_aov2)
+
+# 1. Homogeneity of variances
+plot(DCV_aov2, 1)
+leveneTest(log_10_DCV_MNE ~ 
+                  Line , 
+                data = data_anova)
+
+# 2. Normality
+plot(DCV_aov2, 2)
+
+# Run Shapiro-Wilk test on residuals
+shapiro.test(x = DCV_aov2_res)
+
+# 3. Outliers 
+plot(DCV_aov2, 1)
+outlierTest(DCV_aov2)
+```
+
+# Graphing - ANOVA
+
+```{r Graphing with Loess}
+# Converting Time back into appropriate
+data_anova$Time <- as.character(data_anova$Time)
+data_anova$Time <- as.double(data_anova$Time)
+
+# Creating plot object
+DCV_plot <-ggplot(data_anova) +
+  geom_jitter(
+    aes(Time, log_10_DCV_MNE, col = Line),
+    size = 6,
+    position = position_jitter(width = 0.01),
+    show.legend = FALSE
+  ) +
+  geom_smooth(aes(Time, log_10_DCV_MNE, group = Line, col = Line), show.legend = FALSE, inherit.aes = FALSE, method = 'loess', span = 0.5) +
+  scale_color_manual(values = c("black", "red")) +
+  scale_fill_manual(values = c("black", "red")) +  # Specify the fill colors for Line = 0 and Line = 1
+  theme_classic() +
+  scale_x_continuous(breaks = unique(data_anova$Time), labels = unique(data_anova$Time)) + # set time axis to correspond to actual time points
+  labs(x = "Time (hours)",
+       y = expression(bold(
+         "Relative levels of DCV RNA"
+       ))) +
+  theme(
+    plot.margin = unit(c(3, 1, 1, 2), "lines"),
+    axis.title = element_text(
+      size = 30,
+      face = "bold",
+      colour = "black"
+    ),
+    axis.title.y = element_text(
+      size = 30,
+      face = "bold",
+      colour = "black",
+      hjust = 0.5,
+      vjust = 0.1
+    ),
+    axis.text = element_text(
+      size = 30,
+      face = "bold",
+      colour = "black"
+    ),
+    plot.title = element_text(size = 30)
+  ) +
+  guides(fill = FALSE, colour = FALSE)
+
+```
+
+# Exporting output 
+```{r Exporting Output}
+# Exporting model summary
+sink("Accumulation_DCV_Figure_5_B_stats_output_anova.txt") # change file name
+summary(DCV_aov2) # prints coxme output to txt file
+sink() # closes the connection **CRITICAL**
+
+sink("Accumulation_DCV_Figure_5_B_stats_output_anova_call.txt") # change file name
+print(DCV_aov2) # prints coxme output to txt file
+sink() # closes the connection **CRITICAL**
+
+# Exporting figure
+today <- Sys.Date()
+date <- format(today, format = "%y%m%d")
+name <- paste(date, "Figure", "5", "B",  sep = "_")
+pdf_name <- paste(name, "pdf", sep = ".")
+ggsave(filename = pdf_name,
+       plot = DCV_plot, 
+       width = 15, 
+       height = 7.5)
+```
+
+

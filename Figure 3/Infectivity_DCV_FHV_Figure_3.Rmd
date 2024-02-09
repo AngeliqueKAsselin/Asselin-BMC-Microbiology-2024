@@ -1,0 +1,363 @@
+---
+title: "Infectivity_DCV_FHV_Figure_3"
+author: "Angelique Asselin"
+date: "2023-09-18"
+output: html_document
+---
+
+
+## Experiment Description 
+Virus: DCV and FHV 
+This document contains the analysis comparing the infectivity of virus grown in the presence or absence of Wolbachia. 
+Overal to measure the impact of Wolbachia on the infectivity of DCV and FHV. Infectivity was measured as the number of infectious virus /total virus 
+
+
+## Approach
+
+Steps
+ 1. Transformation (log scale) DONE
+ 2. Check assumptions DONE
+ 3. t-test DONE
+ 4. GLM DONE
+ 5. Compare outputs DONE 
+ 6. Presentation DONE
+ 
+# Preparation 
+ 
+```{r Preparation loading libraries}
+library(tidyverse)
+library(ggplot2)
+library(ggdensity)
+library(ggpubr)
+library(moments)
+library(car)
+library(rstatix)
+```
+
+## Importing Data 
+sample        = Sample number
+IU_mL         = Measure of concentration of infectious particles (IU/ml)
+treatment     = Whether the progeny virus was grown in flies with or without Wolbachia W- W+ 
+virus         = The type of progeny virus DCV or FHV
+biol_rep      = The biological replicate
+total_virus   = Concentration of total virus (Total/ml)
+
+```{r Importing data}
+# Importing measures of infectious particles and total particles
+data <- as.data.frame(read_csv("Infectivity_DCV_FHV_Figure_3_data.csv"))
+```
+
+
+## Transformation 
+Transform the data because it is not normally distributed. Log10.
+Transform the total and infectious virus before taking the ratio. 
+Infectivity = log10(IU)/log10Total
+ 
+
+```{r 1. Transformation}
+
+# log10 transformation
+data <- data %>% 
+  mutate(log_total_virus = log10(total_virus)) %>% 
+  mutate(log_IU_ml = log10(IU_mL)) %>% 
+  mutate(log_infectivity_ratio = log_IU_ml/log_total_virus) %>% 
+  mutate(infectivity_ratio = IU_mL/total_virus)
+
+data_1 <- data %>%
+  group_by(biol_rep) %>%
+  mutate(average_log_infectivity_ratio = mean(log_infectivity_ratio)) %>% 
+  mutate(average_infectivity_ratio = mean(infectivity_ratio))
+
+# Collapsing the dataframe so there is only one point for each biol rep that is the average of two tech reps 
+
+c <- seq(from = 1, by =2, length.out = 12)
+data_2 <- data_1[c,]
+
+# Formatting
+data_2 <-data_2 %>%  
+  mutate(average_log_infectivity_ratio = as.double(average_log_infectivity_ratio)) %>% 
+  mutate(treatment = as.factor(treatment)) %>% 
+  mutate(virus = as.factor(virus))
+
+# Changing the names of the treatments 
+# Changing it so that it is W- for Tet and W+ for Wol 
+data_2$treatment <- gsub("tet", "W-", data_2$treatment)
+data_2$treatment <- gsub("wol", "W+", data_2$treatment)
+data_2$treatment <- factor(data_2$treatment, levels = c("W-", "W+"))
+data_2$virus <- factor(data_2$virus, levels = c("DCV", "FHV"))
+
+# Subset data based on the virus 
+data_DCV <- data_2 %>% 
+  subset(virus == "DCV")
+
+data_FHV <- data_2 %>% 
+  subset(virus == "FHV")
+
+# Subset the data based on the Wolbachia status 
+
+data_DCV_no_Wol <- data_DCV %>% 
+  subset(treatment == "W-")
+  
+data_DCV_Wol <- data_DCV %>% 
+  subset(treatment == "W+")
+
+data_FHV_no_Wol <- data_FHV %>% 
+  subset(treatment == "W-")
+  
+data_FHV_Wol <- data_FHV %>% 
+  subset(treatment == "W+")
+
+# Calculating the infectivity 
+
+DCV_no_Wol_infect <- (sum(data_DCV_no_Wol$average_infectivity_ratio))/3
+DCV_Wol_infect <- (sum(data_DCV_Wol$average_infectivity_ratio))/3
+FHV_no_Wol_infect <- (sum(data_FHV_no_Wol$average_infectivity_ratio))/3
+FHV_Wol_infect <- (sum(data_FHV_Wol$average_infectivity_ratio))/3
+
+# Calculating the number of total particles to 1 infectious particle 
+DCV_no_Wol_number_infect_total <- 1/DCV_no_Wol_infect
+DCV_Wol_number_infect_total <- 1/DCV_Wol_infect
+FHV_no_Wol_number_infect_total <- 1/FHV_no_Wol_infect
+FHV_Wol_number_infect_total <- 1/FHV_Wol_infect
+
+# Creating a table with these results 
+total_to_IU <- rbind(DCV_no_Wol_number_infect_total,DCV_Wol_number_infect_total,FHV_no_Wol_number_infect_total,FHV_Wol_number_infect_total)
+total_to_IU <- round(total_to_IU, digits = 0)
+
+Virus <-  c("DCV W-", "DCV W+", "FHV W-", "FHV W+")
+
+infect_number <- as.data.frame(total_to_IU) 
+infect_number <- infect_number %>% 
+  rename( "Total Virus to 1 infectious particle" = "V1") %>% 
+  tibble::rownames_to_column( "Delete") %>% 
+  cbind(Virus) %>% 
+  select(Virus, "Total Virus to 1 infectious particle", -Delete)
+
+```
+
+## 2. Assumptions
+This confirms that logtransforming the data was appropriate. 
+Because there are two viruses here I think that they might have a biphasic distribution (therefore check for normality grouping by virus?)
+
+Measuring skewness 
+Examples of distributions with  skewness include the following.
+
+skewness = 0: A normal distribution or symmetric distribution 
+skewness = less 1 :A half-normal distribution 
+skewness = 2: An exponential distribution has a 
+skewness = positive: A lognormal distribution 
+
+Results 
+Both viruses considered together 
+Un-transformed skewness = 1.15 
+Transformed skewness = -0.314
+
+DCV
+Un-transformed skewness =  -0.4489619
+Transformed skewness =-0.2971849
+
+FHV
+Un-transformed skewness =  0.6235217
+Transformed skewness = -0.6460759
+
+Conclusions 
+It appears that the entire dataset has a lognormal distribution that is normalised (reduced to close to three and defs below 1 when log10 transformed)
+Continue with the log10 transformation unless otherwise decided. 
+
+```{r 2. Assumptions}
+## Plotting distribution of data ## 
+# Normality of un-transformed data
+ggdensity(data_2, x = "average_infectivity_ratio", fill = "grey")+
+  stat_overlay_normal_density(color = "red", linetype = "dashed")
+
+# Normality of transformed data 
+ggdensity(data_2, x = "average_log_infectivity_ratio", fill = "grey")+
+  stat_overlay_normal_density(color = "red", linetype = "dashed")
+
+# Normality of un-transformed data SORTED BY VIRUS
+ggdensity(data_2, x = "average_infectivity_ratio", fill = "grey", facet.by = "virus")+
+  stat_overlay_normal_density(color = "red", linetype = "dashed")
+
+# Normality of transformed data SORTED BY VIRUS
+ggdensity(data_2, x = "average_log_infectivity_ratio", fill = "grey", facet.by = "virus")+
+  stat_overlay_normal_density(color = "red", linetype = "dashed")
+
+## Formally assess normality ## 
+skewness(data_2$average_infectivity_ratio, na.rm = TRUE) # 1.15 
+skewness(data_2$average_log_infectivity_ratio, na.rm = TRUE) # -0.314
+
+skewness(data_DCV$average_infectivity_ratio, na.rm = TRUE) # -0.44
+skewness(data_DCV$average_log_infectivity_ratio, na.rm = TRUE) # -0.29
+
+skewness(data_FHV$average_infectivity_ratio, na.rm = TRUE) # 0.623
+skewness(data_FHV$average_log_infectivity_ratio, na.rm = TRUE) # -0.646
+```
+## 3. T-test
+
+Results 
+```{r 3. T-test}
+#DCV 
+t_test_DCV <- t.test(data = data_DCV, 
+                 average_log_infectivity_ratio ~ treatment)
+
+#FHV 
+t_test_FHV<- t.test(data = data_FHV, 
+                 average_log_infectivity_ratio ~ treatment)
+```
+
+## 4. GLM 
+
+ Results 
+ 
+ * 3 df with no interaction 
+ * 4 df with interaction 
+ * no interaction was a better model (AIC smaller)
+ * I don't think there is really a difference in the model (deviance ANOVA = 0 )
+ * Use the model 2
+ 
+ 
+```{r 4. GLM }
+## GLM ## 
+# With interaction 
+model_1 <- glm(formula = average_log_infectivity_ratio ~ treatment * virus,
+             family = binomial, 
+             data = data_2)
+summary(model_1)
+
+# Without interaction
+model_2 <- glm(formula = average_log_infectivity_ratio ~ treatment + virus,
+             family = binomial, 
+             data = data_2)
+summary(model_2)
+
+# Best model AIC 
+AIC(model_1, model_2)
+
+# Comparing models ANOVA
+anova(model_1, model_2)
+
+```
+
+# 4. GLM Assumptions
+
+1. Homogeneity of variances (PASS)
+2. Normality (PASS)
+3. Outliers (PASS)
+
+
+```{r 4. GLM Assessing Assumptions}
+
+# 1. Homogeneity of variances
+plot(model_2, 1)
+leveneTest(average_log_infectivity_ratio ~ 
+             virus, 
+           data = data_2)
+
+# 2. Normality
+plot(model_2, 2)
+shapiro_test(residuals(model_2))
+
+# 3. Outliers 
+plot(model_2, 1)
+outlierTest(model_2)
+```
+
+
+# 5. Presenting the results 
+
+* error bars = SE 
+* bar is the mean 
+
+```{r 5. Presenting the results}
+
+summary_data <- data_2 %>%
+  group_by(treatment, virus) %>%
+  summarize(
+    Mean = mean(average_infectivity_ratio),
+    SE = sd(average_infectivity_ratio) / sqrt(n())
+  )
+
+# Graphing the data 
+infectivity <-  ggplot(data_2) +
+  geom_jitter(aes(x = interaction(treatment,virus), 
+                  y = average_infectivity_ratio, 
+                  col = treatment), 
+              size = 5, 
+              position = position_jitter(width = 0.1, height = 0.0001), 
+              show.legend = FALSE)  + 
+  scale_color_manual(values = c("black", "red")) +
+  scale_shape_manual(values = c(16, 1)) +
+  stat_summary(
+    data = summary_data,
+    aes(x = interaction(treatment, virus),
+        y = Mean, 
+        group = virus),
+    fun.data = mean_se,
+    geom = "crossbar",
+    width = 0.2,  # Adjust the width of the bars
+    col = c("black", "red", "black", "red" )  # Color of the bars
+  ) +
+  # Adjust the appearance of summary bars and error bars
+  geom_errorbar(
+    data = summary_data,
+    aes(x = interaction(treatment,virus),
+        ymin = Mean - SE, 
+        ymax = Mean + SE, 
+        group = virus),
+    width = 0.1,  # Width of error bars
+    col = c("black", "black", "red", "red" )  # Color of error bars
+  ) + 
+  theme_classic() +
+  labs(x = "", 
+       y = expression(bold("Infectivity ratio"))) +  # Use "\n" for line break
+  theme(plot.margin = unit(c(3, 1, 1, 2), "lines"),  # adjust plot margins
+        axis.title = element_text(size = 30, face = "bold", colour = "black"),  # center justify axis title text
+        axis.title.y = element_text(size = 30, face = "bold", colour = "black", hjust = 0.5, vjust = 0.1),  # center text on the Y-axis
+        axis.text = element_text(size = 30, face = "bold", colour = "black"),  # increase size of axis tick labels 
+        plot.title = element_text(size = 30 )) +# increase size of plot title text 
+  coord_cartesian(ylim = c(0, 0.005)) + # sets the maximum y-axis 
+  scale_x_discrete(labels = c("W-\n DCV", "W+\n DCV", "W-\n FHV", "W+\n FHV")) +
+  scale_y_continuous(breaks = c(0,0.0025, 0.005))
+
+```
+
+
+```{r Export plots run outside of RMD}
+
+# Exporting the specific infectivity summary table
+write.csv(infect_number, file = "Infectivity_DCV_FHV_Figure_3_Output_Specific_Infectivity.txt")
+
+# Exports T-test output 
+# DCV 
+sink("Infectivity_DCV_FHV_Figure_3_Output_DCV_T_test.txt") 
+print(t_test_DCV) 
+sink() # closes the connection **CRITICAL**
+
+# FHV
+sink("Infectivity_DCV_FHV_Figure_3_Output_FHV_T_test.txt") 
+print(t_test_FHV) 
+sink() # closes the connection **CRITICAL**
+
+# Exports GLM
+# DCV and FHV model 
+sink("Infectivity_DCV_FHV_Figure_3_Output_GLM.txt") # change file name
+print(model_2) # prints coxme output to txt file
+sink() # closes the connection **CRITICAL**
+
+# DCV and FHV model SUMMARY 
+sink("Infectivity_DCV_FHV_Figure_3_Output_GLM_summary.txt") # change file name
+print(summary(model_2)) # prints coxme output to txt file
+sink() # closes the connection **CRITICAL**
+
+# Exporting figure
+today <- Sys.Date()
+date <- format(today, format = "%y%m%d")
+name <- paste(date, "Figure", "3",  sep = "_")
+pdf_name <- paste(name, "pdf", sep = ".")
+ggsave(filename = pdf_name,
+       plot = infectivity, 
+       width = 8, 
+       height = 4)
+
+```
+
