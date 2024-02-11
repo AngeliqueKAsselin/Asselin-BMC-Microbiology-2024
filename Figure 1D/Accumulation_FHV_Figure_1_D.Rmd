@@ -18,18 +18,10 @@ Welch T-test
 
 # Preparation 
 ```{r Preparation: Loading library}
-library(ggplot2)
-library(tidyverse)
-library(gmodels)
-library(FSA)
-library(DescTools)
 library(car)
-library(MASS)
-library(ggpubr)
 library(rstatix)
-library(lmtest)
 library(tidyverse)
-library(car)
+library(ggpubr)
 library(dixonTest)
 ```
 

@@ -21,21 +21,9 @@ Conduct an ANOVA to see if mean normalised expression of DCV RNA genome is diffe
 # Preparation
 
 ```{r Preparation Loading librarys}
-library(nlme)
-library(moments)
-library(ggplot2)
 library(tidyverse)
-library(gmodels)
-library(FSA)
-library(DescTools)
 library(car)
-library(MASS)
-library(ggpubr)
 library(rstatix)
-library(lmtest)
-library(tidyverse)
-library(car)
-library(ggdensity)
 ```
 
 # Importing Ct data 

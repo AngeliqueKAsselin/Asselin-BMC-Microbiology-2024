@@ -25,18 +25,8 @@ Use the coxme model
 # Load library 
 library(coxme)
 library(survminer)
-library(tidyverse)
-library(ggplot2)
 library(SurvRegCensCov)
-library(tibble)
-library(viridis)
-library(dichromat)
-library(RColorBrewer)
-library(MASS)
-library(ggpubr)
-library(rstatix)
-library(lmtest)
-library(car)
+library(tidyverse)
 ```
 
 # Importing data

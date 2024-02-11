@@ -21,22 +21,13 @@ Non-parametric alternatives
  (Kutzner et al. 2023, Kutzner et al. 2019)
 
 # Preparation 
-```{r Load librarys, eval=FALSE}
+```{r Load librarys}
 # Load library 
 library(coxme)
 library(survminer)
-library(tidyverse)
-library(ggplot2)
 library(SurvRegCensCov)
-library(tibble)
-library(viridis)
-library(dichromat)
-library(RColorBrewer)
-library(MASS)
-library(ggpubr)
-library(rstatix)
-library(lmtest)
-library(car)
+library(tidyverse)
+
 ```
 
 # Importing data

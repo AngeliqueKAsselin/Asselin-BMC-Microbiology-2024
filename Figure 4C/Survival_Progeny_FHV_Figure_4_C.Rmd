@@ -17,22 +17,11 @@ To determine if Wolbachia has an impact on the ability for progeny virus(W- or W
 Use the coxme model. 
 
 # Preparation 
-```{r Load librarys, eval=FALSE}
+```{r Load librarys}
 # Load library 
 library(coxme)
 library(survminer)
 library(tidyverse)
-library(ggplot2)
-library(SurvRegCensCov)
-library(tibble)
-library(viridis)
-library(dichromat)
-library(RColorBrewer)
-library(MASS)
-library(ggpubr)
-library(rstatix)
-library(lmtest)
-library(car)
 ```
 
 # Importing data
