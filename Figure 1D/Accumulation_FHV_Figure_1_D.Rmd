@@ -172,32 +172,31 @@ data_MNE$Line <- as.factor(data_MNE$Line)
 data_MNE <- data_MNE %>% 
   mutate(log_10_FHV_MNE = log10(FHV_MNE)) 
 
-# Subsetting time points that have full replicates 
-data_MNE_sub <- subset(data_MNE, Time == "3") 
 ```
 
 # Graphing 
 ```{r Graphing}
-FHV <-  ggplot(data_MNE_sub, aes(x = Line, y = log_10_FHV_MNE)) + 
-   geom_point(aes(col = Line), size = 6, position = position_jitter(width = 0.01)) +
+FHV <-  ggplot(data_MNE, aes(x = interaction(Line,Time), y = log_10_FHV_MNE))+ 
+  geom_point(aes(col = Line), size = 6, position = position_jitter(width = 0.01)) +
   theme_classic()+ 
   stat_summary(fun.data = mean_se, 
                geom = "errorbar", 
                size = 1,
                width = 0.3, 
-               aes(group = Line, col = Line)) +
+               aes(group = interaction(Line, Time), col = Line)) +
   stat_summary(fun = mean,
                geom = "crossbar",
                width = 0.15,
                position = position_dodge(width = 0.3), 
-               aes(group = Line, col = Line)) +
-  labs(x = NULL, y = expression(bold("Relative levels of FHV RNA")), color = "Group") +
+               aes(group = interaction(Line, Time), col = Line)) +
+  labs(x = NULL, y = expression(bold("Relative abundance of FHV RNA ")), color = "Group") +
   scale_color_manual(values = c("black", "red")) +
   theme(plot.margin = unit(c(3, 1, 1, 2), "lines"),
-        axis.text.x = element_blank(),  # Remove x-axis text
+        axis.text.x = element_text(face= "bold", size = 30, colour = "black", hjust = 0.5, vjust = 0.1),  # Remove x-axis text
         axis.text.y = element_text(face= "bold", size = 30, colour = "black", hjust = 0.5, vjust = 0.1), 
         axis.title = element_text(size = 30))+
-   guides(color = FALSE)
+  scale_x_discrete(labels = c("W-\n                          0 hours", "W+\n", "W-\n                              72 hours ", "W+\n")) +
+  guides(color = FALSE)
 
 ```
 
@@ -205,57 +204,99 @@ FHV <-  ggplot(data_MNE_sub, aes(x = Line, y = log_10_FHV_MNE)) +
 
 Comparing the virus levels of two groups. 
 Flies with Wolbachia and flies without Wolbachia. 
-FHV accumulation is only compared at 1 time point therefore a simple t-test should be sufficient. 
-
+Compare each time point separately. 
 
 ```{r FHV T-test}
+# Comparing 0 hpi ##
+data_MNE_sub_0 <- subset(data_MNE, Time == "0")
+
 # Removing outliers (#sample 11)
-data_MNE_sub_outlier <- subset(data_MNE_sub, Sample != 11)
+data_MNE_sub_0_outlier <- subset(data_MNE_sub_0, Sample != 11)
 
 # T-test
-FHV_t_test <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub)
-FHV_t_test
-print(FHV_t_test)
+FHV_t_test_0 <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub_0)
+FHV_t_test_0
+print(FHV_t_test_0)
 
 # T-test without outlier 
-FHV_t_test_out <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub_outlier)
-FHV_t_test_out
+FHV_t_test_out_0 <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub_0_outlier)
+FHV_t_test_out_0
+
+## Comparing 3 hpi ##
+ 
+data_MNE_sub_3 <- subset(data_MNE, Time == "3")
+
+# Removing outliers (#sample 11)
+data_MNE_sub_3_outlier <- subset(data_MNE_sub_3, Sample != 11)
+
+# T-test
+FHV_t_test_3 <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub_3)
+FHV_t_test_3
+print(FHV_t_test_3)
+
+# T-test without outlier 
+FHV_t_test_out_3 <- t.test(log_10_FHV_MNE ~ Line, data = data_MNE_sub_3_outlier)
+FHV_t_test_out_3
+
 ``` 
 
 # Results from analysis 
 
-* Mean normalised expression of FHV is different between the two groups. 
-* Wolbachia has an impact on the levels of FHV after 3 hour post infection. 
+0 hours post infection 
+* Wolbachia has no impact on the relative amount of FHV at 0 hpi (therefore the innoculumn was equivalent)
+
+
+3 hours post infection 
+* Wolbachia has an impact on the relative abundance of FHV after 3 hour post infection. 
 * outlier doesn't impact overall conclusion therefore keep the outlier in for the analysis as there is no evidene compelling it's removal 
 
 
 # Assumptions 
 1. Independence = PASS (in the design)
 2. Normality of dependent variable = PASS (Fit in the confidence interval)
-3. No significant outliers = FAIL (outlier in the Wolbachia data # sample 11, however no impact of removing this outlier on the overall conclusions of this analysis) 
+3. No significant outliers = FAIL (outlier in the Wolbachia 3 hpi data # sample 11, however no impact of removing this outlier on the overall conclusions of this analysis) 
 4. Dependent variable is continuous (PASS)
 
 OUTLIER
 There looks like there is an outlier in the Wolbachia samples but when I checked the time 0 data it was not detectable in this replicate at that time point suggesting that the virus has accumulated so there was a productive infection it just didn't replicate to as high a levels. Because there was an outlier in the data wanted to see if it impacted the outcome. There is still a measured statistical difference regardless of whether the outlier was included but the variation and error is greater for the data when including the outlier. 
 
 ```{r Assumptions}
-# Assumptions 
+## 0 hpi ## 
 # 2. Normality 
-FHV_0 <- data_MNE_sub %>% 
+FHV_0_0hpi <- data_MNE_sub_0 %>% 
   subset(Line == "0")
 
-FHV_1 <- data_MNE_sub %>% 
+FHV_1_0hpi <- data_MNE_sub_0 %>% 
   subset(Line == "1")
 
-ggqqplot(FHV_0$log_10_FHV_MNE) 
-ggqqplot(FHV_1$log_10_FHV_MNE) 
+ggqqplot(FHV_0_0hpi$log_10_FHV_MNE) 
+ggqqplot(FHV_1_0hpi$log_10_FHV_MNE) 
 
 # 3. Outliers 
-# In the data from Flies withtout Wolbachia
-dixonTest(FHV_0$log_10_FHV_MNE)
+# In the data from Flies without Wolbachia
+dixonTest(FHV_0_0hpi$log_10_FHV_MNE)
 
 # In data from flies with Wolbachia 
-dixonTest(FHV_1$log_10_FHV_MNE) # Sample 11 Value -1.15 
+dixonTest(FHV_1_0hpi$log_10_FHV_MNE) #None 
+
+
+## 3 hpi ## 
+# 2. Normality 
+FHV_0_3hpi <- data_MNE_sub_3 %>% 
+  subset(Line == "0")
+
+FHV_1_3hpi <- data_MNE_sub_3 %>% 
+  subset(Line == "1")
+
+ggqqplot(FHV_0_3hpi$log_10_FHV_MNE) 
+ggqqplot(FHV_1_3hpi$log_10_FHV_MNE) 
+
+# 3. Outliers 
+# In the data from Flies without Wolbachia
+dixonTest(FHV_0_3hpi$log_10_FHV_MNE)
+
+# In data from flies with Wolbachia 
+dixonTest(FHV_1_3hpi$log_10_FHV_MNE) # Sample 11 Value -1.15 
 
 ```
 
@@ -270,7 +311,13 @@ ggsave(filename = pdf_name,
 ```
 
 ```{r FHV T-test Output RUN OUT OF RMD}
-sink("Accumulation_FHV_Figure_1_D_stats_output.txt") # add date and data_IFB_01 name | creates the txt file in WD
-print(FHV_t_test) # prints coxme output to txt file
+# 0 hpi 
+sink("Accumulation_FHV_Figure_1_D_stats_output_0hpi.txt") # add date and data_IFB_01 name | creates the txt file in WD
+print(FHV_t_test_0) # prints coxme output to txt file
+sink() # closes the connection **CRITICAL**
+
+# 3 hpi 
+sink("Accumulation_FHV_Figure_1_D_stats_output_3hpi.txt") # add date and data_IFB_01 name | creates the txt file in WD
+print(FHV_t_test_3) # prints coxme output to txt file
 sink() # closes the connection **CRITICAL**
 ```
