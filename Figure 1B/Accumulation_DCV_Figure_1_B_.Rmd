@@ -313,7 +313,7 @@ DCV_plot <-ggplot(data_anova) +
   scale_x_continuous(breaks = unique(data_anova$Time), labels = unique(data_anova$Time)) + # set time axis to correspond to actual time points
   labs(x = "Time (hours)",
        y = expression(bold(
-         "Relative levels of DCV RNA"
+         "Relative abundance of DCV RNA"
        ))) +
   theme(
     plot.margin = unit(c(3, 1, 1, 2), "lines"),
