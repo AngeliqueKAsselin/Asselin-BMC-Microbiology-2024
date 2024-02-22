@@ -1,6 +1,5 @@
 ---
-title: "Survival DCV Original Figure 1A"
-author: "Angelique Asselin"
+title: "Figure 1A: Survival DCV Original "
 date: "`r Sys.Date()`"
 output: html_document
 ---
@@ -15,13 +14,11 @@ To determine the impact Wolbachia has on the survival of flies infected with DCV
 
 # Approach 
 Use the coxme model
-
-# Resources 
- Non-parametric alternatives 
- (Kutzner et al. 2023, Kutzner et al. 2019)
+If doesn't mean proportional hazards 
+* Non-parametric alternatives(Kutzner et al. 2023, Kutzner et al. 2019)
 
 # Preparation 
-```{r Load librarys,  eval=FALSE}
+```{r Load librarys}
 # Load library 
 library(coxme)
 library(survminer)
@@ -39,7 +36,7 @@ BiolRep     = cohort that an individaul fly was a part of
 
 
 ```{r Importing data}
-data_DCV <- read.csv("Survival_Original_DCV_Figure_1_data.csv")
+data_DCV <- read.csv("Survival_DCV_Figure_1_A_data.csv")
 ```
 
 ```{r Formating data}
@@ -48,15 +45,6 @@ data_DCV$Wol <- factor(data_DCV$Wol) # Wolbachia as factor
 data_DCV$Virus <- factor(data_DCV$Virus) # Virus as factor
 data_DCV_noPBS <- dplyr::filter(data_DCV, Virus == 1) # filters out PBS
 data_DCV_PBS <- dplyr::filter(data_DCV, Virus == 0) # Filters out virus 
-
-# Checking data 
-head(data_DCV)
-head(data_DCV_noPBS)
-head(data_DCV_PBS)
-
-# Checking factors
-levels(data_DCV$Wol)
-levels(data_DCV$Virus)
 
 ```
 
@@ -111,7 +99,6 @@ A parametric model with no assumptions was fit to compare.
 
 Approach: 
 Determining if the two tests (coxme and a parametric test) output is comparable. 
-They are if the CI overlap. 
 If they are then the coxme results can be reported. 
 
 Results: 
@@ -224,14 +211,14 @@ Wolbachia impacts survival (coxme)
 * For every fly without wolbachia 0.08902321 flies with Wolbachia die. 
 * For each time point flies with wol are ~92% (1-0.08902321 = 0.92) less likely to die from virus than flies without 
 
-# Graphing Kaplan-Meire survival curves 
+# Graphing Kaplan-Meier survival curves 
 The curves generated for visualisation purposes are Kaplan-Meier but the analysis that has been conducted is coxme
 
-```{r Creating Kaplan-Meire curves}
+```{r Creating Kaplan-Meier curves}
 curves <- survfit(Surv(Days, Survival) ~ Wol, data=data_DCV_noPBS)
 ```
 
-```{r Plotting Kaplan-Meire curves}
+```{r Plotting Kaplan-Meier curves}
 
 graph_DCV <- ggsurvplot(curves,
            data = data_DCV_noPBS,         
@@ -261,16 +248,21 @@ graph_DCV <- ggsurvplot(curves,
 ```{r Exporting outputs - Run outside RDM}
 
 # Saving coxme and weibull summary 
-write.csv(df_join, file = "Survival_DCV_Figure_1_coxme_HR_output.csv", row.names = FALSE)
+write.csv(df_join, file = "Survival_DCV_Figure_1_A_output_coxme_HR.csv", row.names = FALSE)
+
+# Exporting stats output
+sink("Survival_DCV_Figure_1_A_output_coxme_summary.txt") # change file name
+summary(fit1) # prints coxme output to txt file UP TO HERE
+sink() # closes the connection **CRITICAL**
 
 # Saving coxme and weibull plot 
-ggsave("Survival_DCV_Figure_1_coxme_plot_output.pdf", 
+ggsave("Survival_DCV_Figure_1_A_output_plot_coxme.pdf", 
        plot = plot_all, 
        height = 7.5, 
        width = 15) 
 
-# Saving Kaplan-Meire survival curves
-ggsave("Survival_DCV_Figure_1_curves_plot_output.pdf", 
+# Saving Kaplan-Meier survival curves
+ggsave("Survival_DCV_Figure_1_A_output_plot_survival_curves.pdf", 
        plot = graph_DCV$plot, 
        height = 7.5, 
        width = 15)

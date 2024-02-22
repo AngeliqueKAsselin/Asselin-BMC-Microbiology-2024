@@ -1,6 +1,5 @@
 ---
-title: "Figure 5B: Accumulation of progeny DCV in Drosophila cells without Wolbachia"
-author: "Angelique Asselin"
+title: "Figure 5B: Accumulation of progeny DCV in Drosophila cells"
 date: "2023-09-19"
 output: html_document
 ---
@@ -12,11 +11,11 @@ output: html_document
  Figure:    5B
  
 # Rationale 
-To determine if Wolbachia and time has an impact on accumulation of DCV viral RNA in flies. 
+To determine if type of progeny virus (W+ and W-) and time has an impact on accumulation of DCV viral RNA in flies. 
 
 # Approach 
 Calculate mean normalised expression of DCV RNA genome relative to Drosophila melanogaster house keeping gene RpL32. 
-Conduct an ANOVA to see if mean normalised expression of DCV RNA genome is different with Time and Wolbachia
+Conduct an ANOVA to see if mean normalised expression of DCV RNA genome is impacted by type of virus and time
 
 # Preparation
 
@@ -29,13 +28,13 @@ library(rstatix)
 # Importing Ct data 
 Data
 Target_takeoff    = The ct value for reactions targeting DCV 
-Reference_takeoff = The ct value for reactions targeting RpL32
+Reference_takeoff = The ct value for reactions targeting RpL32 
 Sample_number     = The number of the sample note that samples have two technical replicates 
 
 Data_ID 
 Contains information such
 Time          = Time of collection for each sample  
-Replicate     = Replicate number(n=6) 
+Replicate     = Replicate number(n=3)which represents a different virus prep 
 Line          = Represents the type of progeny virus W- = 0, and W+ = 1
 
 ```{r Importing Ct Data}
@@ -50,7 +49,7 @@ This analysis utilises Equation (2) and (3) from
 DOI: 10.1093/bioinformatics/btg157
 
 ```{r Analysing Ct Data}
-# Seting the data
+# Setting the data
 Data <- data_DCV_acc
 
 #Sets % SEM cutoff for samples (default 20%)
@@ -316,20 +315,16 @@ DCV_plot <-ggplot(data_anova) +
 # Exporting output 
 ```{r Exporting Output}
 # Exporting model summary
-sink("Accumulation_DCV_Figure_5_B_stats_output_anova.txt") # change file name
-summary(DCV_aov2) # prints coxme output to txt file
+sink("Accumulation_DCV_Figure_5_B_output_stats_anova.txt") # change file name
+summary(DCV_aov2) # prints output to txt file
 sink() # closes the connection **CRITICAL**
 
-sink("Accumulation_DCV_Figure_5_B_stats_output_anova_call.txt") # change file name
-print(DCV_aov2) # prints coxme output to txt file
+sink("Accumulation_DCV_Figure_5_B_output_stats_anova_call.txt") # change file name
+print(DCV_aov2) # prints output to txt file
 sink() # closes the connection **CRITICAL**
 
 # Exporting figure
-today <- Sys.Date()
-date <- format(today, format = "%y%m%d")
-name <- paste(date, "Figure", "5", "B",  sep = "_")
-pdf_name <- paste(name, "pdf", sep = ".")
-ggsave(filename = pdf_name,
+ggsave(filename = "Accumulation_DCV_Figure_5_B_output_plot.pdf",
        plot = DCV_plot, 
        width = 15, 
        height = 7.5)

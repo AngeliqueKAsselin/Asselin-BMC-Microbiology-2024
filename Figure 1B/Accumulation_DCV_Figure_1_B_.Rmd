@@ -1,6 +1,5 @@
 ---
-title: "Accumulation of DCV in flies with and without Wolbachia"
-author: "Angelique Asselin"
+title: "Figure 1B: Accumulation of DCV in flies with and without Wolbachia "
 date: "2023-09-19"
 output: html_document
 ---
@@ -342,35 +341,31 @@ DCV_plot <-ggplot(data_anova) +
 
 ```{r Exporting Output (Run outside of RMD)}
 # Exporting stats output
-sink("Accumulation_DCV_Figure_1_B_stats_output_anova.txt") # change file name
+sink("Accumulation_DCV_Figure_1_B_output_stats_anova.txt") # change file name
 summary(DCV_rank1) # prints coxme output to txt file UP TO HERE
 sink() # closes the connection **CRITICAL**
 
-sink("Accumulation_DCV_Figure_1_B_stats_output_anova_call.txt") # change file name
+sink("Accumulation_DCV_Figure_1_B_output_stats_anova_call.txt") # change file name
 print(DCV_rank1) # prints coxme output to txt file UP TO HERE
 sink() # closes the connection **CRITICAL**
 
 # Exporting interaction summary 
-sink("Accumulation_DCV_Figure_1_B_stats_output_emmean_means.txt") # change file name
+sink("Accumulation_DCV_Figure_1_B_output_stats_emmean_means.txt") # change file name
 print(em_out_category) # Means at each timepoint
 sink() # closes the connection **CRITICAL**
 
 # Exporting Summary of the times at which Wol has an impact
-sink("Accumulation_DCV_Figure_1_B_stats_output_emmean_summary.txt") # change file name
+sink("Accumulation_DCV_Figure_1_B_output_stats_emmean_summary.txt") # change file name
 print(em_summary) # Summary of which times Wol has an impact
 sink() # closes the connection **CRITICAL**
 
 # Exporting Summary of the times at which Wol has an impact
-sink("Accumulation_DCV_Figure_1_B_stats_output_emmean_summary_detailed.txt") # change file name
+sink("Accumulation_DCV_Figure_1_B_output_stats_emmean_summary_detailed.txt") # change file name
 pairs(em_out_category) # More detailed analyss of time Wolbachia has an impact
 sink() # closes the connection **CRITICAL**
 
 # Exporting figure
-today <- Sys.Date()
-date <- format(today, format = "%y%m%d")
-name <- paste(date, "Figure", "1", "B",  sep = "_")
-pdf_name <- paste(name, "pdf", sep = ".")
-ggsave(filename = pdf_name,
+ggsave(filename = "Accumulation_DCV_Figure_1_B_output_plot.pdf",
        plot = DCV_plot, 
        width = 15, 
        height = 7.5)

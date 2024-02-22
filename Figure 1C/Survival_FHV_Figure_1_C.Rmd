@@ -1,6 +1,5 @@
 ---
-title: "Survival FHV Original Figure 1C"
-author: "Angelique Asselin"
+title: "Figure 1C: Survival FHV Original"
 date: "`r Sys.Date()`"
 output: html_document
 ---
@@ -39,7 +38,7 @@ TechRep     = Individual vial a fly was part of
 BiolRep     = cohort that an individaul fly was a part of 
 
 ```{r Importing Data}
-data_FHV <- read.csv("Survival_Original_FHV_Figure_1_data.csv")
+data_FHV <- read.csv("Survival_FHV_Figure_1_C_data.csv")
 ```
 
 ```{r Formating Data}
@@ -161,16 +160,16 @@ plot_coxme <- ggplot(df_cox, aes(x = factor, y = HR, colour = test, group_by(tes
   theme_minimal()
 ```
 
-# Graphing Kaplan-Meire survival curves 
+# Graphing Kaplan-Meier survival curves 
 
 The curves generated are Kaplan-Meier but the analysis that has been conducted is coxme
 
-```{r Creating Kaplan-Meire curves}
+```{r Creating Kaplan-Meier curves}
 # Creating the survival curve 
 curves <- survfit(Surv(Days, Survival) ~ Wol, data=data_FHV_noPBS)
 ```
 
-```{r Plotting Kaplan-Meire curves}
+```{r Plotting Kaplan-Meier curves}
 
 graph_FHV <- ggsurvplot(curves,
            data = data_FHV_noPBS,              
@@ -197,19 +196,26 @@ graph_FHV <- ggsurvplot(curves,
 ```
 
 # Exporting outputs 
+Run outside of rmd
 ```{r Exporting outputs}
 
 # Saving coxme summary
-write.csv(df_cox, file = "Survival_FHV_Figure_1_coxme_HR_output.csv", row.names = FALSE)
+write.csv(df_cox, file = "Survival_FHV_Figure_1_C_output_coxme_HR.csv", row.names = FALSE)
+
+# Exporting stats output
+sink("Survival_FHV_Figure_1_C_output_coxme_summary.txt") # change file name
+summary(fit1) # prints coxme output to txt file UP TO HERE
+sink() # closes the connection **CRITICAL**
+
 
 # Saving coxme plot 
-ggsave("Survival_FHV_Figure_1_coxme_plot_output.pdf", 
+ggsave("Survival_FHV_Figure_1_C_output_plot_coxme.pdf", 
        plot = plot_coxme, 
        height = 7.5, 
        width = 15) 
 
-# Saving Kaplan-Meire survival curves 
-ggsave("Survival_DCV_Figure_1_curves_plot_output.pdf", 
+# Saving Kaplan-Meier survival curves 
+ggsave("Survival_FHV_Figure_1_C_output_plot_survival_curves.pdf", 
        plot = graph_FHV$plot, 
        height = 7.5, 
        width = 15)

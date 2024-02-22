@@ -1,11 +1,10 @@
 ---
-title: "Survival Progeny experiment"
-author: "Angelique Asselin"
+title: "Figure 4C: Survival Progeny experiment"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 # Experimental details
- Virus:     Progeny FHV grown in the absence and presence o r Wolbachia (W- or W+)
+ Virus:     Progeny FHV from flies with(W+) or without wolbachia (W-)
  Titre:     50.6 nL of 10E12 total virus particles/mL 
  Fly:       w1118 wMelPopTet
  Figure:    4C
@@ -73,11 +72,6 @@ Conclusions:
 As assumptions are meet can just conduct Cox-me and report those results. 
 
 ```{r Coxme Assumptions}
-
-# 1. Proportional hazards: Visualise
-# Plot
-LMLplot <- plot(survfit(Surv(Days, Survival) ~ WolVirus, data = data_FHV_progeny_noPBS), fun = "cloglog")
-
 # 1. Proportional hazards: Formally test
 ftest <- cox.zph(fit1)
 print(ftest) # prints test results
@@ -85,10 +79,10 @@ ggcoxzph(ftest) # plots test results
 ```
 
 # Conclusions 
-1. Wolbachia does NOT impact the pathogenicity of progeny FHV virus
-* The HR of flies with Wol progeny virus is 0.8362753 (coxme) and the CI crosses 1 suggesting there is no difference also the pvalue is non-sig
+From the analysis and the summary below
+Wolbachia does NOT impact the pathogenicity of progeny FHV virus
+* The HR of flies with Wol progeny virus is 0.8362753 (coxme) and the CI crosses 1 suggesting there is no difference also the     pvalue is non-sig
 * For each time point there is no difference in the probability of death  
-* Wolbachia does not seem to impact progeny virus infectivity 
 
 ```{r Summary Coxme output}
 # Extract the HR estimates and confidence intervals
@@ -137,9 +131,9 @@ plot_coxme <- ggplot(df_cox, aes(x = factor, y = HR, colour = test, group_by(tes
   theme_minimal()
 ```
 
-# Graphing Kaplan-Meire survival curves 
+# Graphing Kaplan-Meier survival curves 
 The curves generated are Kaplan-Meier but the analysis that has been conducted is coxme
-```{r Creating Kaplan-Meire curves}
+```{r Creating Kaplan-Meier curves}
 # Creating the survival curve 
 curves <- survfit(Surv(Days, Survival) ~ WolVirus, data=data_FHV_progeny_noPBS)
 ```
@@ -174,22 +168,22 @@ graph_FHV_progeny <- ggsurvplot(curves,
 ```{r Exporting outputs}
 
 # Saving coxme summary
-write.csv(df_cox, file = "Survival_Progeny_FHV_Figure_4_C_coxme_HR_output.csv", row.names = FALSE)
+write.csv(df_cox, file = "Survival_Progeny_FHV_Figure_4_C_output_coxme_HR.csv", row.names = FALSE)
 
 # Saving coxme fit output 
-sink("Survival_Progeny_FHV_Figure_4_C_coxme_summary_output.txt") # change file name
+sink("Survival_Progeny_FHV_Figure_4_C_output_coxme_summary.txt") # change file name
 summary(fit1) # prints coxme output to txt file UP TO HERE
 sink() # closes the connection **CRITICAL**
 
 
 # Saving coxme plot 
-ggsave("Survival_Progeny_FHV_Figure_4_C_coxme_plot_output.pdf", 
+ggsave("Survival_Progeny_FHV_Figure_4_C_output_coxme_plot.pdf", 
        plot = plot_coxme, 
        height = 7.5, 
        width = 15) 
 
-# Saving Kaplan-Meire survival curves 
-ggsave("Survival_Progeny_FHV_Figure_4_C_curves_plot_output.pdf", 
+# Saving Kaplan-Meier survival curves 
+ggsave("Survival_Progeny_FHV_Figure_4_C_output_curves_plot.pdf", 
        plot = graph_FHV_progeny$plot, 
        height = 7.5, 
        width = 15)

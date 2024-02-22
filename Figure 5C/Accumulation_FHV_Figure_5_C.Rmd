@@ -1,18 +1,17 @@
 ---
 title: "Figure 5C: Accumulation of progeny FHV in Drosophila cells without Wolbachia"
-author: "Angelique Asselin"
 date: "2023-09-19"
 output: html_document
 ---
 
 # Experimental details
- Virus:     FHV(EB)
+ Virus:     FHV
  Titre:     100 total FHV particles per cell
  Fly:       S2 Drosophila melanogaster cells 
  Figure:    5C
  
 # Rationale 
-To determine if Wolbachia and time has an impact on accumulation of FHV viral RNA in flies. 
+To determine if type of progeny virus (W+ and W-) and time has an impact on accumulation of DCV viral RNA in flies. 
 
 # Approach 
 Calculate mean normalised expression of FHV RNA genome relative to Drosophila melanogaster house keeping gene RpL32. 
@@ -35,7 +34,7 @@ Sample_number     = The number of the sample note that samples have two technica
 Data_ID 
 Contains information such
 Time          = Time of collection for each sample  
-Replicate     = Replicate number(n=6) 
+Replicate     = Replicate number(n=3) which represents a different virus prep
 Line          = Represents the type of progeny virus W- = 0, and W+ = 1
 
 ```{r Importing Ct Data}
@@ -146,13 +145,14 @@ MNE <- Normalised %>%
     FHV_SE_MNE = X.SE.of.MNE.,
     FHV_SE_Percent = X.SE.of.MNE.as....x..20...
   ) %>%
-  slice(-1) %>% 
+  slice(-1) %>% # Gets rid of first row
   select(Sample, everything())
 
 # Visualize the data frame
 View(MNE)
 ```
 
+Data was quality controlled before entry so there should be no data censored unless RNA is non-detectable by the assay. 
 ```{r Censored data }
 # Formats the censored data set
 SEM_censored <- list %>%
@@ -188,12 +188,12 @@ data_MNE <- full_join(data_ID, MNE, by = join_by(Sample))
 
 ```{r Formating MNE for analysis and graphing}
 # Coding the factors correctly 
-data_MNE$Time <- as.factor(data_MNE$Time)
-data_MNE$FHV_MNE <- as.numeric(data_MNE$FHV_MNE)
+data_MNE$Time <- as.factor(data_MNE$Time) # Time as a factor
+data_MNE$FHV_MNE <- as.numeric(data_MNE$FHV_MNE) # MNE as a continous numeric
 
 # Log-transforming data
 data_MNE <- data_MNE %>% 
-  mutate(log_10_FHV_MNE = log10(FHV_MNE)) 
+  mutate(log_10_FHV_MNE = log10(FHV_MNE)) # log10 transformation 
 
 # Subsetting relevant info
 data_anova <- data_MNE %>% 
@@ -243,10 +243,6 @@ summary(FHV_aov2)
 # Visually Check 
 plot(FHV_aov2)
 
-# Extract residuals and fitted values
-FHV_aov2_fitted <- fitted(FHV_aov2)
-FHV_aov2_res <- residuals(FHV_aov2)
-
 # 1. Homogeneity of variances
 plot(FHV_aov2, 1)
 leveneTest(log_10_FHV_MNE ~ 
@@ -257,7 +253,7 @@ leveneTest(log_10_FHV_MNE ~
 plot(FHV_aov2, 2)
 
 # Run Shapiro-Wilk test on residuals
-shapiro.test(x = FHV_aov2_res)
+shapiro.test(x = residuals(FHV_aov2))
 
 # 3. Outliers 
 plot(FHV_aov2, 1)
@@ -266,7 +262,7 @@ outlierTest(FHV_aov2)
 # Graphing - ANOVA
 
 ```{r Graphing with Loess}
-# Converting Time back into appropriate
+# Converting Time back into continous for the graph
 data_anova$Time <- as.character(data_anova$Time)
 data_anova$Time <- as.double(data_anova$Time)
 
@@ -314,21 +310,18 @@ FHV_plot <-ggplot(data_anova) +
 # Exporting output
 ```{r Exporting Output}
 # Exporting model summary
-sink("Accumulation_FHV_Figure_5_C_stats_output_anova.txt") # change file name
-summary(FHV_aov2) # prints coxme output to txt file
+sink("Accumulation_FHV_Figure_5_C_output_stats_anova.txt") # change file name
+summary(FHV_aov2) # prints  output to txt file
 sink() # closes the connection **CRITICAL**
 
-sink("Accumulation_FHV_Figure_5_C_stats_output_anova_call.txt") # change file name
-print(FHV_aov2) # prints coxme output to txt file
+sink("Accumulation_FHV_Figure_5_C_output_stats_anova_call.txt") # change file name
+print(FHV_aov2) # prints  output to txt file
 sink() # closes the connection **CRITICAL**
 
 # Exporting figure
-today <- Sys.Date()
-date <- format(today, format = "%y%m%d")
-name <- paste(date, "Figure", "5", "C",  sep = "_")
-pdf_name <- paste(name, "pdf", sep = ".")
-ggsave(filename = pdf_name,
+ggsave(filename = "Accumulation_FHV_Figure_5_C_output_plot.pdf",
        plot = FHV_plot, 
        width = 15, 
        height = 7.5)
+
 ```

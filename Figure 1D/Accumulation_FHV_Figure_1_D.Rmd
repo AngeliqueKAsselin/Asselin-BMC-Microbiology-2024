@@ -1,6 +1,5 @@
 ---
-title: "Accumulation of FHV in flies with and without Wolbachia"
-author: "Angelique Asselin"
+title: "Figure 1D: Accumulation of FHV in flies with and without Wolbachia"
 date: "2023-09-19"
 output: html_document
 ---
@@ -11,7 +10,7 @@ output: html_document
  Figure:    1D
  
 # Rationale 
-To determine if Wolbachia has an impact on measured FHV levels three hours post infection. 
+To determine if Wolbachia has an impact on abundance of FHV viral RNA. 
 
 # Approach
 Welch T-test 
@@ -301,16 +300,15 @@ dixonTest(FHV_1_3hpi$log_10_FHV_MNE) # Sample 11 Value -1.15
 ```
 
 # Exporting 
-```{r Exporting Graph}
-name <- paste("Figure", "1", "D", sep = "_")
-pdf_name <- paste(name, "pdf", sep = ".")
-ggsave(filename = pdf_name,
+```{r Exporting Output, run out of RMD}
+
+# Saving plot
+ggsave(filename = "Accumulation_FHV_Figure_1_D_output_plot.pdf",
        plot = FHV, 
        width = 15, 
        height = 7.5)
-```
 
-```{r FHV T-test Output RUN OUT OF RMD}
+## saving t-tests ##
 # 0 hpi 
 sink("Accumulation_FHV_Figure_1_D_stats_output_0hpi.txt") # add date and data_IFB_01 name | creates the txt file in WD
 print(FHV_t_test_0) # prints coxme output to txt file
