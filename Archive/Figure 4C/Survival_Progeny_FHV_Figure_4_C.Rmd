@@ -1,0 +1,190 @@
+---
+title: "Figure 4C: Survival Progeny experiment"
+date: "`r Sys.Date()`"
+output: html_document
+---
+# Experimental details
+ Virus:     Progeny FHV from flies with(W+) or without wolbachia (W-)
+ Titre:     50.6 nL of 10E12 total virus particles/mL 
+ Fly:       w1118 wMelPopTet
+ Figure:    4C
+
+# Rationale 
+To determine if Wolbachia has an impact on the ability for progeny virus(W- or W+) to cause disease in Drosophila melanogaster host. 
+
+# Approach 
+Use the coxme model. 
+
+# Preparation 
+```{r Load librarys}
+# Load library 
+library(coxme)
+library(survminer)
+library(tidyverse)
+```
+
+# Importing data
+Day         = Day at which mortality was seen else the last day of the experiment
+Suvival     = Whether the fly was alive (0) or dead (1) on the day 
+Virus       = Presence of virus (0 = absent, 1 = present)
+WolVirus    = Type of progeny virus used (0 = W-, 1 = W+)
+TechRep     = Individual vial a fly was part of 
+BiolRep     = Virus prep used to infect the fly 
+
+```{r Importing data}
+# Importing data
+data_FHV_progeny <- read.csv("Survival_Progeny_FHV_Figure_4_C_data.csv")
+
+# Formatting data_FHV_progeny
+data_FHV_progeny$WolVirus <- factor(data_FHV_progeny$WolVirus) # Wolvirus factor 
+data_FHV_progeny$Virus <- factor(data_FHV_progeny$Virus) # Virus factor 
+data_FHV_progeny_noPBS <- dplyr::filter(data_FHV_progeny, Virus == 1) # Filters PBS
+data_FHV_progeny_PBS <- dplyr::filter(data_FHV_progeny, Virus == 0) # Filters virus 
+
+# Checking data_FHV_progeny 
+head(data_FHV_progeny)
+head(data_FHV_progeny_noPBS)
+head(data_FHV_progeny_PBS)
+
+# Checking factors
+levels(data_FHV_progeny$WolVirus)
+levels(data_FHV_progeny$Virus)
+
+```
+
+# Coxme Analysis 
+Applying Cox-me model to determine if there is a difference between the surivival of flies infected with  W- virus and W+ DCV
+Model is fit with Virus type (WolVirus) as the predictor and biol and tech replication as random effects.
+
+```{r Coxme fitting}
+# Fitting the model 
+fit1 <- coxme(Surv(Days, Survival) ~ WolVirus + (1 | BiolRep/TechRep), data = data_FHV_progeny_noPBS)
+```
+
+# Assumptions 
+Assumptions of coxme: 
+1. Proportional hazards 
+
+Results:
+1. Passed: p-value for global and wolvirus is not significant
+
+Conclusions: 
+As assumptions are meet can just conduct Cox-me and report those results. 
+
+```{r Coxme Assumptions}
+# 1. Proportional hazards: Formally test
+ftest <- cox.zph(fit1)
+print(ftest) # prints test results
+ggcoxzph(ftest) # plots test results
+```
+
+# Conclusions 
+From the analysis and the summary below
+Wolbachia does NOT impact the pathogenicity of progeny FHV virus
+* The HR of flies with Wol progeny virus is 0.8362753 (coxme) and the CI crosses 1 suggesting there is no difference also the     pvalue is non-sig
+* For each time point there is no difference in the probability of death  
+
+```{r Summary Coxme output}
+# Extract the HR estimates and confidence intervals
+coef_cox<- as.data.frame(summary(fit1)$coefficients)
+HR_cox <- as.data.frame(exp(coef_cox))
+CI_cox <- as.data.frame(exp(confint(fit1))) 
+
+# Extracts p-value 
+extract_coxme_table <- function (mod){
+  beta <- mod$coefficients #$fixed is not needed
+  nvar <- length(beta)
+  nfrail <- nrow(mod$var) - nvar
+  se <- sqrt(diag(mod$var)[nfrail + 1:nvar])
+  z<- round(beta/se, 2)
+  p<- signif(1 - pchisq((beta/se)^2, 1), 2)
+  table=data.frame(cbind(beta,se,z,p))
+  return(table)
+}
+extract_coxme_table(fit1)
+p_cox <- as.data.frame(extract_coxme_table(fit1)$p)
+
+# Create data_DCV_progenyframes
+df_cox <- bind_cols(coef_cox, HR_cox, CI_cox, p_cox) %>% 
+  rename(coef = `summary(fit1)$coefficients...1`, 
+         HR = `summary(fit1)$coefficients...2`, 
+         "LB_2.5%" = "2.5 %",
+         "UB_97.5%" = "97.5 %", 
+         pval = "extract_coxme_table(fit1)$p") %>% 
+  mutate(test = "coxme") %>% 
+  tibble::rownames_to_column("factor")
+
+# confirms extraction 
+print(fit1)
+View(df_cox)
+```
+
+```{r Visualising Coxme output}
+# Graph of HR and CI 
+plot_coxme <- ggplot(df_cox, aes(x = factor, y = HR, colour = test, group_by(test))) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = `LB_2.5%`, ymax = `UB_97.5%`, color = test), width = 0.1) +
+  coord_flip() +
+  xlab("") +
+  ylab("Hazard Ratio") +
+  scale_color_manual(values = c("blue")) +
+  theme_minimal()
+```
+
+# Graphing Kaplan-Meier survival curves 
+The curves generated are Kaplan-Meier but the analysis that has been conducted is coxme
+```{r Creating Kaplan-Meier curves}
+# Creating the survival curve 
+curves <- survfit(Surv(Days, Survival) ~ WolVirus, data=data_FHV_progeny_noPBS)
+```
+
+```{r Creating the plots}
+graph_FHV_progeny <- ggsurvplot(curves,
+           data = data_FHV_progeny_noPBS,               #change to the virus under analy
+           axes.offset = FALSE,            #changes axes to start at zero
+           line = c(1,1,1,2,2,2),
+           xlim = c(0,10),
+           ylim = c(0,1.07),
+           xlab = "Days Post Infection",
+           ylab = "Proportional survival",
+           legend.title=element_blank(), 
+           break.time.by = 1, 
+           break.y.by = 0.2,
+           conf.int = TRUE,
+           ggtheme = theme_classic2(),
+           palette = c("black", "red"),
+           legend = "none"
+) |> ggpar(
+  font.x        = c(30, "bold", "black"),          
+  font.y        = c(30, "bold", "black"),      
+  font.xtickslab = c(30, "plain", "black"),
+  font.ytickslab = c(30, "plain", "black")
+) 
+
+```
+
+
+# Exporting outputs 
+```{r Exporting outputs}
+
+# Saving coxme summary
+write.csv(df_cox, file = "Survival_Progeny_FHV_Figure_4_C_output_coxme_HR.csv", row.names = FALSE)
+
+# Saving coxme fit output 
+sink("Survival_Progeny_FHV_Figure_4_C_output_coxme_summary.txt") # change file name
+summary(fit1) # prints coxme output to txt file UP TO HERE
+sink() # closes the connection **CRITICAL**
+
+
+# Saving coxme plot 
+ggsave("Survival_Progeny_FHV_Figure_4_C_output_coxme_plot.pdf", 
+       plot = plot_coxme, 
+       height = 7.5, 
+       width = 15) 
+
+# Saving Kaplan-Meier survival curves 
+ggsave("Survival_Progeny_FHV_Figure_4_C_output_curves_plot.pdf", 
+       plot = graph_FHV_progeny$plot, 
+       height = 7.5, 
+       width = 15)
+```

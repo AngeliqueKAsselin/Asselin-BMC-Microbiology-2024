@@ -188,7 +188,7 @@ model_2 <- glm(formula = average_log_infectivity_ratio ~ treatment + virus,
 
 # Best model AIC 
 AIC(model_1, model_2)
-
+AIC(model_2, model_3)
 
 # Comparing models ANOVA
 anova(model_1, model_2)
@@ -237,15 +237,15 @@ summary_data <- data_2 %>%
   )
 
 # Graphing the data 
-infectivity <- ggplot(data_2) +
+infectivity <-  ggplot(data_2) +
   geom_jitter(
     aes(
       x = interaction(treatment, virus),
       y = average_infectivity_ratio, # not transformed
       col = treatment
     ),
-    size = 2,
-    position = position_jitter(width = 0.2),
+    size = 5,
+    position = position_jitter(width = 0.1, height = 0.0001),
     show.legend = FALSE
   )  +
   scale_color_manual(values = c("black", "red")) +
@@ -259,8 +259,7 @@ infectivity <- ggplot(data_2) +
     ),
     fun.data = mean_se,
     geom = "crossbar",
-    width = 0.3,
-    linewidth  =0.08,
+    width = 0.2,
     # Adjust the width of the bars
     col = c("black", "red", "black", "red")  # Color of the bars
   ) +
@@ -274,7 +273,6 @@ infectivity <- ggplot(data_2) +
       group = virus
     ),
     width = 0.1,
-     linewidth  =0.08,
     # Width of error bars
     col = c("black", "black", "red", "red")  # Color of error bars
   ) +
@@ -291,30 +289,24 @@ infectivity <- ggplot(data_2) +
     ),
     # center justify axis title text
     axis.title.y = element_text(
-      size = 25,
+      size = 30,
       face = "bold",
       colour = "black",
       hjust = 0.5,
       vjust = 0.1
     ),
     # center text on the Y-axis
-    axis.text.y = element_text(
-      size = 20,
-      face = "bold",
-      colour = "black"
-    ),
-    axis.text.x = element_text(
-      size = 20,
+    axis.text = element_text(
+      size = 30,
       face = "bold",
       colour = "black"
     ),
     # increase size of axis tick labels
-    plot.title = element_text(size = 10)
+    plot.title = element_text(size = 30)
   ) + # increase size of plot title text
   coord_cartesian(ylim = c(0, 0.005)) + # sets the maximum y-axis
   scale_x_discrete(labels = c("W-\n DCV", "W+\n DCV", "W-\n FHV", "W+\n FHV")) +
-  scale_y_continuous(breaks = c(0,0.00125, 0.0025, 0.00375,0.005))
-
+  scale_y_continuous(breaks = c(0, 0.0025, 0.005))
 
 ```
 

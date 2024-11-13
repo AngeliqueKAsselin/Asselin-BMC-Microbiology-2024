@@ -1,0 +1,303 @@
+---
+title: "Figure 2A: Survival DCV Original "
+date: "`r Sys.Date()`"
+output: html_document
+---
+# Experimental details
+ Virus: DCV
+ Titre: 10E8 IU/mL 
+ Fly: w1118 wMelPop and w1118 wMelPopTet
+ Figure: 2A
+ 
+# Rationale 
+To determine the impact Wolbachia has on the survival of flies infected with DCV. 
+
+# Approach 
+Use the coxme model
+If doesn't mean proportional hazards 
+* Non-parametric alternatives(Kutzner et al. 2023, Kutzner et al. 2019)
+
+# Preparation 
+```{r Load librarys}
+# Load library 
+library(coxme)
+library(survminer)
+library(SurvRegCensCov)
+library(tidyverse)
+```
+
+# Importing data
+Day         = Day at which mortality was seen else the last day of the experiment
+Suvival     = Whether the fly was alive (0) or dead (1) on the day 
+Wol         = Presence or absences of Wolbachia 0 = Absent w1118-wMelpopTet, 1 = present w1118-wMelPop)
+Virus       = Presence of virus (0 = absent, 1 = present)
+TechRep     = Individual vial a fly was part of 
+BiolRep     = cohort that an individaul fly was a part of 
+
+
+```{r Importing data}
+data_DCV <- read.csv("Survival_DCV_Figure_2_A_data.csv")
+```
+
+```{r Formating data}
+# Formatting data
+data_DCV$Wol <- factor(data_DCV$Wol) # Wolbachia as factor
+data_DCV$Virus <- factor(data_DCV$Virus) # Virus as factor
+data_DCV_noPBS <- dplyr::filter(data_DCV, Virus == 1) # filters out PBS
+data_DCV_PBS <- dplyr::filter(data_DCV, Virus == 0) # Filters out virus 
+
+```
+
+# Coxme Analysis 
+Applying cox-me model to determine the impact of Wolbachia on survival when flies are infected with DCV.
+
+* Wolbachia = predictor
+* biol and tech replicates = random effects
+
+```{r Coxme fitting}
+# Fitting the model 
+fit1 <- coxme(Surv(Days, Survival) ~ Wol + (1 | BiolRep/TechRep), data = data_DCV_noPBS)
+```
+
+# Assumptions 
+Testing the assumptions of coxme
+1. Independent of treatments, virus impacts survival 
+2. Independent of viral infection, Wolbachia doesn't impact survival (PBS)
+3. Proportional hazards 
+
+Results:
+1. Passed: p-value for virus coef is significant 
+2. Passed: p-value for wol coef is not significant
+3. Fail: Global and wol coef fails a p-value significant
+
+Conclusions: 
+Going forward proceed with the fit1 coxme and test using the non-parameteric analysis to confirm the results are qualitatively similar. 
+
+```{r Coxme Assumptions}
+# 1. Independent of treatments virus impacts survival 
+fitSus <- coxme(Surv(Days, Survival) ~ Virus + (1 | BiolRep/TechRep), data= data_DCV) 
+fitSus 
+
+# 2. Independent of viral infection Wolbachia doesn't impact survival (PBS)
+fitPBS <- coxme(Surv(Days, Survival) ~ Wol + (1 | BiolRep/TechRep), data = data_DCV_PBS) 
+fitPBS
+
+# 3. Proportional hazard: Visualise
+# Plot
+LMLplot <- plot(survfit(Surv(Days, Survival) ~ Wol, data = data_DCV_noPBS), fun = "cloglog")
+
+# 3. Proportional hazards: Formally test
+ftest <- cox.zph(fit1)
+print(ftest) # prints test results
+ggcoxzph(ftest) # plots test results
+```
+
+# Comparing parametric with non-parametric coxme 
+The assumption (3) of proportional hazards was not met. 
+Coxme may not be appropriate.
+A parametric model with no assumptions was fit to compare. 
+
+Approach: 
+Determining if the two tests (coxme and a parametric test) output is comparable. 
+If they are then the coxme results can be reported. 
+
+Results: 
+Weibull distribution is the best fit model 
+1. CI of overlap
+
+Conclusions: 
+Both models show that wol has a significant impact on survival. 
+Report the coxme model results 
+
+
+```{r Parametric test}
+# Coxme
+summary(fit1)
+
+# Parametric analysis (fitting different parametric models)
+fit_wei <-
+  survreg(Surv(Days, Survival) ~ Wol , dist = "weibull", data = data_DCV_noPBS)
+fit_expo <-
+  survreg(Surv(Days, Survival) ~ Wol , dist = "exponential", data = data_DCV_noPBS)
+fit_gauss <-
+  survreg(Surv(Days, Survival) ~ Wol , dist = "gaussian", data = data_DCV_noPBS)
+fit_extreme <-
+  survreg(Surv(Days, Survival) ~ Wol , dist = "extreme", data = data_DCV_noPBS)
+fit_logit <-
+  survreg(Surv(Days, Survival) ~ Wol , dist = "logistic", data = data_DCV_noPBS)
+
+# Testing which model is the best
+AIC(fit_wei, fit_expo, fit_gauss, fit_extreme, fit_logit) # Weibull was the best fit
+
+```
+
+```{r Comparing coxme with a parametric model}
+# Summarising the best model
+summary(fit_wei)
+ConvertWeibull(fit_wei)
+WeibullDiag(Surv(Days, Survival)~ Wol, data = data_DCV_noPBS)
+
+# Extract coxme HR and CI 
+coef_cox<- as.data.frame(summary(fit1)$coefficients)
+HR_cox <- as.data.frame(exp(coef_cox))
+CI_cox <- as.data.frame(exp(confint(fit1))) # coefficient CIs for HR 
+
+# Extract weibull HR and CI 
+coef_wei<- as.data.frame(ConvertWeibull(fit_wei)$vars[3,1])
+HR_wei <- as.data.frame(ConvertWeibull(fit_wei)$HR) # Include upper and lower bounds
+
+# Extracts p-value 
+extract_coxme_table <- function (mod){
+  beta <- mod$coefficients #$fixed is not needed
+  nvar <- length(beta)
+  nfrail <- nrow(mod$var) - nvar
+  se <- sqrt(diag(mod$var)[nfrail + 1:nvar])
+  z<- round(beta/se, 2)
+  p<- signif(1 - pchisq((beta/se)^2, 1), 2)
+  table=data.frame(cbind(beta,se,z,p))
+  return(table)
+}
+extract_coxme_table(fit1)
+
+# Storing p-values 
+p_cox <- as.data.frame(extract_coxme_table(fit1)$p)
+p_wei <- as.data.frame(extract_coxme_table(fit_wei)[2,]$p)
+
+# Create data_DCVframes
+df_cox <- bind_cols(coef_cox, HR_cox, CI_cox, p_cox) %>% 
+  rename(coef = `summary(fit1)$coefficients...1`, 
+         HR = `summary(fit1)$coefficients...2`, 
+         "LB_2.5%" = "2.5 %",
+         "UB_97.5%" = "97.5 %", 
+         pval = "extract_coxme_table(fit1)$p") %>% 
+  mutate(test = "coxme") %>% 
+  tibble::rownames_to_column("factor")
+
+df_wei <- bind_cols(coef_wei, HR_wei, p_wei)%>% 
+  rename(coef = `ConvertWeibull(fit_wei)$vars[3, 1]`,
+         "LB_2.5%" = "LB", 
+         "UB_97.5%" = "UB", 
+         pval = "extract_coxme_table(fit_wei)[2, ]$p") %>% 
+  mutate(test = "weibull") %>% 
+  tibble::rownames_to_column("factor")
+
+# Summary df of all the information
+df_join <- full_join(df_cox, df_wei, by = join_by(factor, coef, HR, `LB_2.5%`, `UB_97.5%`,pval, test))
+
+# confirms extraction 
+print(fit1)
+print(fit_wei)
+```
+
+```{r Visualising coxme and Weibull output}
+# Graph of HR and CI 
+plot_all <- ggplot(df_join, aes(x = factor, y = HR, colour = test, group_by(test))) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = `LB_2.5%`, ymax = `UB_97.5%`, color = test), width = 0.1) +
+  coord_flip() +
+  xlab("") +
+  ylab("Hazard Ratio") +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
+
+
+# Conclusions 
+From the analysis and the summary
+HR of both the parametric and non-parametric analysis is close and the CI over lap.Therefore only reported the results from the coxme. 
+
+Wolbachia impacts survival (coxme)
+* The HR of flies with wol is 0.08902321
+* For every fly without wolbachia 0.08902321 flies with Wolbachia die. 
+* For each time point flies with wol are ~92% (1-0.08902321 = 0.92) less likely to die from virus than flies without 
+
+# Graphing Kaplan-Meier survival curves 
+The curves generated for visualisation purposes are Kaplan-Meier but the analysis that has been conducted is coxme
+
+```{r Creating Kaplan-Meier curves}
+curves <- survfit(Surv(Days, Survival) ~ Wol, data=data_DCV_noPBS)
+curves_PBS <- survfit(Surv(Days, Survival) ~ Wol+ Virus, data=data_DCV)
+```
+
+```{r Plotting Kaplan-Meier curves}
+# without PBS control
+graph_DCV <- ggsurvplot(curves,
+           data = data_DCV_noPBS,         
+           axes.offset = FALSE,            #changes axes to start at zero
+           line = c(1,1,1,2,2,2),
+           xlim = c(0,25),
+           ylim = c(0,1.01),
+           xlab = "Days Post Infection",
+           ylab = "Proportional survival",
+           legend.title=element_blank(), 
+           break.time.by = 2, 
+           break.y.by = 0.2,
+           conf.int = TRUE,
+           ggtheme = theme_classic2(),
+           palette = c("black", "red"),
+           legend = "none"
+) |> ggpar(
+  font.x        = c(30, "bold", "black"),          
+  font.y        = c(30, "bold", "black"),      
+  font.xtickslab = c(30, "plain", "black"),
+  font.ytickslab = c(30, "plain", "black")
+)
+
+# With PBS control
+
+# without PBS control
+graph_DCV_PBS <- ggsurvplot(curves_PBS,
+           data = data_DCV,         
+           axes.offset = FALSE,            #changes axes to start at zero
+           line = c(2,1,2,1),
+           xlim = c(0,25),
+           ylim = c(0,1.01),
+           xlab = "Days Post Infection",
+           ylab = "Proportional survival",
+           legend.title=element_blank(), 
+           break.time.by = 2, 
+           break.y.by = 0.2,
+           conf.int = TRUE,
+           ggtheme = theme_classic2(),
+           palette = c("black", "black", "red", "red"),
+           legend = "none"
+) |> ggpar(
+  font.x        = c(30, "bold", "black"),          
+  font.y        = c(30, "bold", "black"),      
+  font.xtickslab = c(30, "plain", "black"),
+  font.ytickslab = c(30, "plain", "black")
+)
+
+```
+
+
+# Exporting outputs
+```{r Exporting outputs - Run outside RDM}
+
+# Saving coxme and weibull summary 
+write.csv(df_join, file = "Survival_DCV_Figure_1_A_output_coxme_HR.csv", row.names = FALSE)
+
+# Exporting stats output
+sink("Survival_DCV_Figure_1_A_output_coxme_summary.txt") # change file name
+summary(fit1) # prints coxme output to txt file UP TO HERE
+sink() # closes the connection **CRITICAL**
+
+# Saving coxme and weibull plot 
+ggsave("Survival_DCV_Figure_1_A_output_plot_coxme.pdf", 
+       plot = plot_all, 
+       height = 7.5, 
+       width = 15) 
+
+# Saving Kaplan-Meier survival curves
+# Without PBS
+ggsave("Survival_DCV_Figure_1_A_output_plot_survival_curves.pdf", 
+       plot = graph_DCV$plot, 
+       height = 7.5, 
+       width = 15)
+
+# With PBS
+ggsave("Survival_DCV_Figure_2_A_output_plot_survival_curves_PBS.pdf", 
+       plot = graph_DCV_PBS$plot, 
+       height = 7.5, 
+       width = 15)
+```

@@ -231,7 +231,6 @@ AIC(FHV_aov2, FHV_aov4)
 
 # Summary of analysis 
 summary(FHV_aov2)
-summary(FHV_aov1)
 
 ```
 # Assumptions -ANOVA 

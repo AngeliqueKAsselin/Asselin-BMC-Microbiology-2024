@@ -1,21 +1,21 @@
 ---
-title: "Figure 5C: Accumulation of progeny FHV in Drosophila cells without Wolbachia"
+title: "Figure 5B: Accumulation of progeny DCV in Drosophila cells"
 date: "2023-09-19"
 output: html_document
 ---
 
 # Experimental details
- Virus:     FHV
- Titre:     100 total FHV particles per cell
+ Virus:     DCV(EB)
+ Titre:     0.001 total DCV particles per cell
  Fly:       S2 Drosophila melanogaster cells 
- Figure:    5C
+ Figure:    5B
  
 # Rationale 
 To determine if type of progeny virus (W+ and W-) and time has an impact on accumulation of DCV viral RNA in flies. 
 
 # Approach 
-Calculate mean normalised expression of FHV RNA genome relative to Drosophila melanogaster house keeping gene RpL32. 
-Conduct an ANOVA to see if mean normalised expression of FHV RNA genome is different with Time and Wolbachia
+Calculate mean normalised expression of DCV RNA genome relative to Drosophila melanogaster house keeping gene RpL32. 
+Conduct an ANOVA to see if mean normalised expression of DCV RNA genome is impacted by type of virus and time
 
 # Preparation
 
@@ -27,30 +27,30 @@ library(rstatix)
 
 # Importing Ct data 
 Data
-Target_takeoff    = The ct value for reactions targeting FHV 
-Reference_takeoff = The ct value for reactions targeting RpL32
+Target_takeoff    = The ct value for reactions targeting DCV 
+Reference_takeoff = The ct value for reactions targeting RpL32 
 Sample_number     = The number of the sample note that samples have two technical replicates 
 
 Data_ID 
 Contains information such
 Time          = Time of collection for each sample  
-Replicate     = Replicate number(n=3) which represents a different virus prep
+Replicate     = Replicate number(n=3)which represents a different virus prep 
 Line          = Represents the type of progeny virus W- = 0, and W+ = 1
 
 ```{r Importing Ct Data}
 # Importing raw Ct values
-data_FHV_acc<- as.data.frame(read_csv("Accumulation_FHV_Figure_5_C_data.csv"))
+data_DCV_acc<- as.data.frame(read_csv("Accumulation_DCV_Figure_5_B_data.csv"))
 
 # Importing sample ID information
-data_ID <- as.data.frame(read_csv("Accumulation_FHV_Figure_5_C_data_sample_ID.csv"))
+data_ID <- as.data.frame(read_csv("Accumulation_DCV_Figure_5_B_data_sample_ID.csv"))
 ```
 # Calculating MNE from Ct Data 
 This analysis utilises Equation (2) and (3) from 
 DOI: 10.1093/bioinformatics/btg157
 
 ```{r Analysing Ct Data}
-# Seting the data
-Data <- data_FHV_acc
+# Setting the data
+Data <- data_DCV_acc
 
 #Sets % SEM cutoff for samples (default 20%)
 SEMCutoff = 20
@@ -59,7 +59,7 @@ SEMCutoff = 20
 UseCutoff = 1
 
 # Change std Amp. efficiency if necessary
-TarAmp = 1.99 # FHV
+TarAmp = 1.79 # DCV
 RefAmp = 1.64 # rpl32
 
 # Sorting the data for analysis
@@ -141,18 +141,18 @@ View(Normalised)
 MNE <- Normalised %>%
   rename(
     Sample = X.Sample.,
-    FHV_MNE = X.MNE.,
-    FHV_SE_MNE = X.SE.of.MNE.,
-    FHV_SE_Percent = X.SE.of.MNE.as....x..20...
+    DCV_MNE = X.MNE.,
+    DCV_SE_MNE = X.SE.of.MNE.,
+    DCV_SE_Percent = X.SE.of.MNE.as....x..20...
   ) %>%
-  slice(-1) %>% # Gets rid of first row
+  slice(-1) %>% 
   select(Sample, everything())
 
 # Visualize the data frame
 View(MNE)
 ```
 
-Data was quality controlled before entry so there should be no data censored unless RNA is non-detectable by the assay. 
+Censored data are those samples that were essentially non-detectable by qPCR  ct>30
 ```{r Censored data }
 # Formats the censored data set
 SEM_censored <- list %>%
@@ -188,101 +188,104 @@ data_MNE <- full_join(data_ID, MNE, by = join_by(Sample))
 
 ```{r Formating MNE for analysis and graphing}
 # Coding the factors correctly 
-data_MNE$Time <- as.factor(data_MNE$Time) # Time as a factor
-data_MNE$FHV_MNE <- as.numeric(data_MNE$FHV_MNE) # MNE as a continous numeric
+data_MNE$Time <- as.factor(data_MNE$Time)
+data_MNE$DCV_MNE <- as.numeric(data_MNE$DCV_MNE)
 
 # Log-transforming data
 data_MNE <- data_MNE %>% 
-  mutate(log_10_FHV_MNE = log10(FHV_MNE)) # log10 transformation 
+  mutate(log_10_DCV_MNE = log10(DCV_MNE)) 
 
-# Subsetting relevant info
-data_anova <- data_MNE %>% 
-  select(log_10_FHV_MNE, Time, Line, Replicate, Sample) %>% 
+# Subsetting time points that have full replicates 
+data_MNE_sub <- subset(data_MNE, Time != "0") %>% 
+  subset( Time != "2") %>% # Some were censored because ND 
+  subset( Time != "4") # Some samples were censored because ND
+
+data_anova <- data_MNE_sub %>% 
+  select(log_10_DCV_MNE, Time, Line, Replicate, Sample) %>% 
   mutate(Line = as.factor(Line)) %>% 
   mutate(Time = as.factor(Time))
 ```
 
+
 # Analysis - ANOVA 
+
 ```{r ANOVA Fitting the model}
 # Fitting the model 
-FHV_aov1 <- aov(log_10_FHV_MNE ~ 
+DCV_aov1 <- aov(log_10_DCV_MNE ~ 
                   Line * 
                   Time , 
                 data = data_anova)
 
-FHV_aov2 <- aov(log_10_FHV_MNE ~ 
+DCV_aov2 <- aov(log_10_DCV_MNE ~ 
                   Line + 
                   Time , 
-                data = data_anova) # Best fit model
+                data = data_anova) #Best fit model
 
-FHV_aov3 <- aov(log_10_FHV_MNE ~ 
-                  Time , 
-                data = data_anova)
-
-FHV_aov4 <- aov(log_10_FHV_MNE ~ 
+DCV_aov3 <- aov(log_10_DCV_MNE ~ 
                   Line , 
                 data = data_anova)
 
-
 # Finding the best fit model
-AIC(FHV_aov1, FHV_aov2) 
-AIC(FHV_aov2, FHV_aov3)
-AIC(FHV_aov2, FHV_aov4)
+AIC(DCV_aov1, DCV_aov2) 
+AIC(DCV_aov2, DCV_aov3)
 
 # Summary of analysis 
-summary(FHV_aov2)
-summary(FHV_aov1)
-
+summary(DCV_aov2)
 ```
+
 # Assumptions -ANOVA 
 1. Homogeneity of variances (PASS)
 2. Normality (PASS)
 3. Outliers (PASS)
 
 ```{r ANOVA Assumptions}
-
 # Visually Check 
-plot(FHV_aov2)
+plot(DCV_aov2)
+
+# Extract residuals and fitted values
+DCV_aov2_fitted <- fitted(DCV_aov2)
+DCV_aov2_res <- residuals(DCV_aov2)
 
 # 1. Homogeneity of variances
-plot(FHV_aov2, 1)
-leveneTest(log_10_FHV_MNE ~ 
+plot(DCV_aov2, 1)
+leveneTest(log_10_DCV_MNE ~ 
                   Line , 
                 data = data_anova)
 
 # 2. Normality
-plot(FHV_aov2, 2)
+plot(DCV_aov2, 2)
 
 # Run Shapiro-Wilk test on residuals
-shapiro.test(x = residuals(FHV_aov2))
+shapiro.test(x = DCV_aov2_res)
 
 # 3. Outliers 
-plot(FHV_aov2, 1)
-outlierTest(FHV_aov2)
+plot(DCV_aov2, 1)
+outlierTest(DCV_aov2)
 ```
+
 # Graphing - ANOVA
 
 ```{r Graphing with Loess}
-# Converting Time back into continous for the graph
+# Converting Time back into appropriate
 data_anova$Time <- as.character(data_anova$Time)
 data_anova$Time <- as.double(data_anova$Time)
 
 # Creating plot object
-FHV_plot <-ggplot(data_anova) +
+DCV_plot <-ggplot(data_anova) +
   geom_jitter(
-    aes(Time, log_10_FHV_MNE, col = Line),
+    aes(Time, log_10_DCV_MNE, col = Line),
     size = 6,
     position = position_jitter(width = 0.01),
     show.legend = FALSE
   ) +
-  geom_smooth(aes(Time, log_10_FHV_MNE, group = Line, col = Line), show.legend = FALSE, inherit.aes = FALSE, method = 'loess', span = 1) +
+  geom_smooth(aes(Time, log_10_DCV_MNE, group = Line, col = Line), show.legend = FALSE, inherit.aes = FALSE, method = 'loess', span = 0.5) +
   scale_color_manual(values = c("black", "red")) +
   scale_fill_manual(values = c("black", "red")) +  # Specify the fill colors for Line = 0 and Line = 1
   theme_classic() +
   scale_x_continuous(breaks = unique(data_anova$Time), labels = unique(data_anova$Time)) + # set time axis to correspond to actual time points
   labs(x = "Time (hours)",
        y = expression(bold(
-         "Relative levels of FHV RNA"
+         "Relative abundance of DCV RNA"
        ))) +
   theme(
     plot.margin = unit(c(3, 1, 1, 2), "lines"),
@@ -306,23 +309,25 @@ FHV_plot <-ggplot(data_anova) +
     plot.title = element_text(size = 30)
   ) +
   guides(fill = FALSE, colour = FALSE)
+
 ```
 
-# Exporting output
+# Exporting output 
 ```{r Exporting Output}
 # Exporting model summary
-sink("Accumulation_FHV_Figure_5_C_output_stats_anova.txt") # change file name
-summary(FHV_aov2) # prints  output to txt file
+sink("Accumulation_DCV_Figure_5_B_output_stats_anova.txt") # change file name
+summary(DCV_aov2) # prints output to txt file
 sink() # closes the connection **CRITICAL**
 
-sink("Accumulation_FHV_Figure_5_C_output_stats_anova_call.txt") # change file name
-print(FHV_aov2) # prints  output to txt file
+sink("Accumulation_DCV_Figure_5_B_output_stats_anova_call.txt") # change file name
+print(DCV_aov2) # prints output to txt file
 sink() # closes the connection **CRITICAL**
 
 # Exporting figure
-ggsave(filename = "Accumulation_FHV_Figure_5_C_output_plot.pdf",
-       plot = FHV_plot, 
+ggsave(filename = "Accumulation_DCV_Figure_5_B_output_plot.pdf",
+       plot = DCV_plot, 
        width = 15, 
        height = 7.5)
-
 ```
+
+
