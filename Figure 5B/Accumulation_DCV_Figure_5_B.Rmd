@@ -231,6 +231,7 @@ AIC(DCV_aov2, DCV_aov3)
 
 # Summary of analysis 
 summary(DCV_aov2)
+summary(DCV_aov1)
 ```
 
 # Assumptions -ANOVA 
@@ -240,28 +241,31 @@ summary(DCV_aov2)
 
 ```{r ANOVA Assumptions}
 # Visually Check 
-plot(DCV_aov2)
+plot(DCV_aov1)
 
 # Extract residuals and fitted values
-DCV_aov2_fitted <- fitted(DCV_aov2)
-DCV_aov2_res <- residuals(DCV_aov2)
+DCV_aov1_fitted <- fitted(DCV_aov1)
+DCV_aov1_res <- residuals(DCV_aov1)
 
 # 1. Homogeneity of variances
-plot(DCV_aov2, 1)
+plot(DCV_aov1, 1)
 leveneTest(log_10_DCV_MNE ~ 
                   Line , 
                 data = data_anova)
 
 # 2. Normality
-plot(DCV_aov2, 2)
+plot(DCV_aov1, 2)
 
 # Run Shapiro-Wilk test on residuals
-shapiro.test(x = DCV_aov2_res)
+shapiro.test(x = DCV_aov1_res)
 
 # 3. Outliers 
-plot(DCV_aov2, 1)
-outlierTest(DCV_aov2)
+plot(DCV_aov1, 1)
+outlierTest(DCV_aov1)
 ```
+
+
+
 
 # Graphing - ANOVA
 
@@ -316,11 +320,11 @@ DCV_plot <-ggplot(data_anova) +
 ```{r Exporting Output}
 # Exporting model summary
 sink("Accumulation_DCV_Figure_5_B_output_stats_anova.txt") # change file name
-summary(DCV_aov2) # prints output to txt file
+summary(DCV_aov1) # prints output to txt file
 sink() # closes the connection **CRITICAL**
 
 sink("Accumulation_DCV_Figure_5_B_output_stats_anova_call.txt") # change file name
-print(DCV_aov2) # prints output to txt file
+print(DCV_aov1) # prints output to txt file
 sink() # closes the connection **CRITICAL**
 
 # Exporting figure

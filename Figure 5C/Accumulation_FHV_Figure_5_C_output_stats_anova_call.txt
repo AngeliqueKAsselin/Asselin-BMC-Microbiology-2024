@@ -1,0 +1,10 @@
+Call:
+   aov(formula = log_10_FHV_MNE ~ Line * Time, data = data_anova)
+
+Terms:
+                     Line      Time Line:Time Residuals
+Sum of Squares    0.29357 132.76212   1.19538   8.01953
+Deg. of Freedom         1         4         4        21
+
+Residual standard error: 0.6179662
+Estimated effects may be unbalanced

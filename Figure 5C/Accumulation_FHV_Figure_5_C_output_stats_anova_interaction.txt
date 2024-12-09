@@ -1,0 +1,112 @@
+            Df Sum Sq Mean Sq F value   Pr(>F)    
+Line         1   0.29    0.29   0.796    0.381    
+Time         4 132.76   33.19  90.046 1.81e-14 ***
+Residuals   25   9.21    0.37                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Sample: 2 was censored due to exceeding SEM cutoff of 20 with a value of 26.32 
+Sample: 3 was censored due to exceeding SEM cutoff of 20 with a value of 35.28 
+Sample: 4 was censored due to exceeding SEM cutoff of 20 with a value of 34.93 
+Sample: 8 was censored due to exceeding SEM cutoff of 20 with a value of 267.83 
+Sample: 9 was censored due to exceeding SEM cutoff of 20 with a value of 148.46 
+Sample: 10 was censored due to exceeding SEM cutoff of 20 with a value of 20.97 
+Sample: 11 was censored due to exceeding SEM cutoff of 20 with a value of 38.56 
+Sample: 12 was censored due to exceeding SEM cutoff of 20 with a value of 20.53 
+Sample: 14 was censored due to exceeding SEM cutoff of 20 with a value of 35.02 
+Sample: 16 was censored due to exceeding SEM cutoff of 20 with a value of 20.53 
+Sample: 18 was censored due to exceeding SEM cutoff of 20 with a value of 25.3 
+Sample: 49 was censored due to exceeding SEM cutoff of 20 with a value of 43.74 
+Sample: 50 was censored due to exceeding SEM cutoff of 20 with a value of 40.76 
+Sample: 51 was censored due to exceeding SEM cutoff of 20 with a value of 32.02 
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.515  0.224    
+Time         4  80.06  20.014 500.787 <2e-16 ***
+Residuals   54   2.16   0.040                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Levene's Test for Homogeneity of Variance (center = median)
+      Df F value Pr(>F)
+group  1  0.0428 0.8369
+      58               
+
+	Shapiro-Wilk normality test
+
+data:  DCV_aov2_res
+W = 0.9916, p-value = 0.9545
+
+No Studentized residuals with Bonferroni p < 0.05
+Largest |rstudent|:
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.444  0.235    
+Time         4  80.06  20.014 477.259 <2e-16 ***
+Line:Time    4   0.06   0.015   0.366  0.832    
+Residuals   50   2.10   0.042                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.515  0.224    
+Time         4  80.06  20.014 500.787 <2e-16 ***
+Residuals   54   2.16   0.040                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.444  0.235    
+Time         4  80.06  20.014 477.259 <2e-16 ***
+Line:Time    4   0.06   0.015   0.366  0.832    
+Residuals   50   2.10   0.042                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.515  0.224    
+Time         4  80.06  20.014 500.787 <2e-16 ***
+Residuals   54   2.16   0.040                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.444  0.235    
+Time         4  80.06  20.014 477.259 <2e-16 ***
+Line:Time    4   0.06   0.015   0.366  0.832    
+Residuals   50   2.10   0.042                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+Call:
+   aov(formula = log_10_DCV_MNE ~ Line * Time, data = data_anova)
+
+Terms:
+                    Line     Time Line:Time Residuals
+Sum of Squares   0.06054 80.05660   0.06135   2.09678
+Deg. of Freedom        1        4         4        50
+
+Residual standard error: 0.2047819
+Estimated effects may be unbalanced
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.515  0.224    
+Time         4  80.06  20.014 500.787 <2e-16 ***
+Residuals   54   2.16   0.040                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.444  0.235    
+Time         4  80.06  20.014 477.259 <2e-16 ***
+Line:Time    4   0.06   0.015   0.366  0.832    
+Residuals   50   2.10   0.042                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.515  0.224    
+Time         4  80.06  20.014 500.787 <2e-16 ***
+Residuals   54   2.16   0.040                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.515  0.224    
+Time         4  80.06  20.014 500.787 <2e-16 ***
+Residuals   54   2.16   0.040                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+            Df Sum Sq Mean Sq F value Pr(>F)    
+Line         1   0.06   0.061   1.515  0.224    
+Time         4  80.06  20.014 500.787 <2e-16 ***
+Residuals   54   2.16   0.040                   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1

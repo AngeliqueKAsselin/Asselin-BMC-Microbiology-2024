@@ -210,7 +210,7 @@ FHV_aov1 <- aov(log_10_FHV_MNE ~
                   Time , 
                 data = data_anova)
 
-FHV_aov2 <- aov(log_10_FHV_MNE ~ 
+FHV_aov2<- aov(log_10_FHV_MNE ~ 
                   Line + 
                   Time , 
                 data = data_anova) # Best fit model
@@ -225,13 +225,13 @@ FHV_aov4 <- aov(log_10_FHV_MNE ~
 
 
 # Finding the best fit model
-AIC(FHV_aov1, FHV_aov2) 
-AIC(FHV_aov2, FHV_aov3)
-AIC(FHV_aov2, FHV_aov4)
+AIC(FHV_aov1, FHV_aov1) 
+AIC(FHV_aov1, FHV_aov3)
+AIC(FHV_aov1, FHV_aov4)
 
 # Summary of analysis 
-summary(FHV_aov2)
 summary(FHV_aov1)
+summary(FHV_aov2)
 
 ```
 # Assumptions -ANOVA 
@@ -242,23 +242,23 @@ summary(FHV_aov1)
 ```{r ANOVA Assumptions}
 
 # Visually Check 
-plot(FHV_aov2)
+plot(FHV_aov1)
 
 # 1. Homogeneity of variances
-plot(FHV_aov2, 1)
+plot(FHV_aov1, 1)
 leveneTest(log_10_FHV_MNE ~ 
                   Line , 
                 data = data_anova)
 
 # 2. Normality
-plot(FHV_aov2, 2)
+plot(FHV_aov1, 2)
 
 # Run Shapiro-Wilk test on residuals
-shapiro.test(x = residuals(FHV_aov2))
+shapiro.test(x = residuals(FHV_aov1))
 
 # 3. Outliers 
-plot(FHV_aov2, 1)
-outlierTest(FHV_aov2)
+plot(FHV_aov1, 1)
+outlierTest(FHV_aov1)
 ```
 # Graphing - ANOVA
 
@@ -312,11 +312,11 @@ FHV_plot <-ggplot(data_anova) +
 ```{r Exporting Output}
 # Exporting model summary
 sink("Accumulation_FHV_Figure_5_C_output_stats_anova.txt") # change file name
-summary(FHV_aov2) # prints  output to txt file
+summary(FHV_aov1) # prints  output to txt file
 sink() # closes the connection **CRITICAL**
 
 sink("Accumulation_FHV_Figure_5_C_output_stats_anova_call.txt") # change file name
-print(FHV_aov2) # prints  output to txt file
+print(FHV_aov1) # prints  output to txt file
 sink() # closes the connection **CRITICAL**
 
 # Exporting figure
@@ -324,5 +324,4 @@ ggsave(filename = "Accumulation_FHV_Figure_5_C_output_plot.pdf",
        plot = FHV_plot, 
        width = 15, 
        height = 7.5)
-
 ```
